@@ -28,7 +28,6 @@ public:
     {
         m_cmd.Begin(frameIndex);
 
-        // Transition PRESENT -> RENDER_TARGET
         D3D12_RESOURCE_BARRIER b{};
         b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         b.Transition.pResource = m_sc->BackBuffer(frameIndex);
@@ -37,24 +36,28 @@ public:
         b.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
         m_cmd.Get()->ResourceBarrier(1, &b);
 
-        // Bind RT/DS + viewport/scissor
         auto rtv = m_sc->CurrentRTV();
         auto dsv = m_db->DSV();
         m_cmd.Get()->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
         m_cmd.Get()->RSSetViewports(1, &m_viewport);
         m_cmd.Get()->RSSetScissorRects(1, &m_scissor);
 
-        const float clear[4]{ 0.02f, 0.05f, 0.12f, 1.0f };
+        const float clear[4]{ 0.02f, 0.1f, 0.2f, 1.0f };
         m_cmd.Get()->ClearRenderTargetView(rtv, clear, 0, nullptr);
         m_cmd.Get()->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-        // Bind pipeline
         m_cmd.Get()->SetGraphicsRootSignature(m_pipe->Root());
         m_cmd.Get()->SetPipelineState(m_pipe->PSO());
     }
 
     void DrawMesh(const Mesh& mesh, D3D12_GPU_VIRTUAL_ADDRESS cbAddr)
     {
+        {
+            auto& tex = mesh.m_tex;
+            ID3D12DescriptorHeap* heaps[] = { const_cast<ID3D12DescriptorHeap*>(tex.SRVHeap()) };
+            m_cmd.Get()->SetDescriptorHeaps(1, heaps);
+            m_cmd.Get()->SetGraphicsRootDescriptorTable(1, tex.GPUHandle());
+        }
         m_cmd.Get()->SetGraphicsRootConstantBufferView(0, cbAddr);
         m_cmd.Get()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         m_cmd.Get()->IASetVertexBuffers(0, 1, &mesh.VBV());
@@ -64,7 +67,6 @@ public:
 
     void EndFrame(UINT frameIndex)
     {
-        // Transition RENDER_TARGET -> PRESENT
         D3D12_RESOURCE_BARRIER b{};
         b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         b.Transition.pResource = m_sc->BackBuffer(frameIndex);

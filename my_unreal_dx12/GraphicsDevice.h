@@ -3,7 +3,7 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include "Utils.h"
-
+#include <iostream>
 
 using Microsoft::WRL::ComPtr;
 
@@ -28,6 +28,7 @@ public:
 		for (UINT i = 0; m_factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i)
 		{
 			DXGI_ADAPTER_DESC1 d{}; adapter->GetDesc1(&d);
+			std::wcout << L"Found adapter: " << d.Description << L"\n";
 			if (d.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) continue;
 			if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device), nullptr)))
 			{

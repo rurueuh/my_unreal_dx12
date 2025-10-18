@@ -126,20 +126,26 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="CameraController.h" />
     <ClInclude Include="CommandContext.h" />
     <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="DepthBuffer.h" />
     <ClInclude Include="GraphicsDevice.h" />
+    <ClInclude Include="main.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="ShaderPipeline.h" />
     <ClInclude Include="Shaders.h" />
+    <ClInclude Include="stb_image.h" />
     <ClInclude Include="SwapChain.h" />
+    <ClInclude Include="Texture.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="Window.h" />
+    <ClInclude Include="WindowDX12.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CameraController.cpp" />
     <ClCompile Include="CommandContext.cpp" />
     <ClCompile Include="ConstantBuffer.cpp" />
     <ClCompile Include="DepthBuffer.cpp" />
@@ -150,7 +156,10 @@
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="ShaderPipeline.cpp" />
     <ClCompile Include="SwapChain.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="Utils.cpp" />
     <ClCompile Include="Window.cpp" />
+    <ClCompile Include="WindowDX12.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="my_unreal_dx12.rc" />

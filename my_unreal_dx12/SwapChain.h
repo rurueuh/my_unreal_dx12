@@ -5,8 +5,6 @@
 #include "Utils.h"
 #include "GraphicsDevice.h"
 
-static const UINT kSwapBufferCount = 2;
-
 class SwapChain
 {
 public:

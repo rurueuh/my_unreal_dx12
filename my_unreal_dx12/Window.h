@@ -44,6 +44,11 @@ public:
 		return true;
 	}
 
+	void SetTitle(const std::wstring& title)
+	{
+		SetWindowTextW(m_hwnd, title.c_str());
+	}
+
 
 	bool PumpMessages()
 	{
