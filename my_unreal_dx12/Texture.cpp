@@ -4,9 +4,11 @@
 
 void Texture::LoadFromFile(GraphicsDevice& gd, const char* path)
 {
-#ifndef defined(STB_IMAGE_IMPLEMENTATION)
     int w = 0, h = 0, comp = 0;
     unsigned char* data = stbi_load(path, &w, &h, &comp, 4);
+    if (!data) {
+        throw std::runtime_error("Failed to load image");
+	}
 
     auto device = gd.Device();
 
@@ -88,7 +90,6 @@ void Texture::LoadFromFile(GraphicsDevice& gd, const char* path)
     srv.Texture2D.MipLevels = 1;
 
     device->CreateShaderResourceView(m_tex.Get(), &srv, m_srvHeap->GetCPUDescriptorHandleForHeapStart());
-#endif
 }
 
 Texture Texture::InitWhite1x1(GraphicsDevice& gd) {

@@ -45,6 +45,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 	dirt.LoadFromFile(win.GetGraphicsDevice(), "dirt.jpg");
 
 	Mesh cubeMesh("teapot.txt");
+	cubeMesh.SetPosition(30.0f, 0.0f, 0.0f);
 	cubeMesh.SetTexture(&dirt);
 	cubeMesh.setColor(1.0f, 1.0f, 0.0f);
     while (numCubes--) {
@@ -58,12 +59,20 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 		cubes.push_back(cube);
     }
 
+	Texture fighterTex;
+	fighterTex.LoadFromFile(win.GetGraphicsDevice(), "fighter_jet.jpg");
+	Mesh fighterJet("fighter_jet.obj");
+	fighterJet.SetTexture(&fighterTex);
+	fighterJet.SetPosition(0.0f, -10.0f, 20.0f);
+	fighterJet.SetScale(0.1f, 0.1f, 0.1f);
+
 	std::chrono::steady_clock::time_point lastTime = std::chrono::steady_clock::now();
 
     while (win.IsOpen())
     {
         win.Clear();
         win.Draw(cubeMesh);
+		win.Draw(fighterJet);
         for (auto& c : cubes) {
             win.Draw(c);
         }
