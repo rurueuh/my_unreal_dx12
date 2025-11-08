@@ -68,6 +68,7 @@ public:
     UINT  Height() const { return m_height; }
     UINT  FrameIndex() const { return m_frameIndex; }
     void  UpdateFrameIndex() { m_frameIndex = m_swapchain->GetCurrentBackBufferIndex(); }
+    UINT BufferCount() const { return kSwapBufferCount; }
 
 private:
     Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swapchain;

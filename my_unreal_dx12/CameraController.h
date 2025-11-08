@@ -60,8 +60,11 @@ public:
     }
 
     void SetMoveSpeeds(float normal, float fast) { m_moveSpeed = normal; m_moveSpeedFast = fast; }
+	float &GetMoveSpeed() { return m_moveSpeed; }
     void SetMouseSensitivity(float sens) { m_sens = sens; }
+	float GetMouseSensitivity() const { return m_sens; }
     void SetProj(float fov, float zn, float zf) { m_fov = fov; m_nearZ = zn; m_farZ = zf; }
+	float GetFov() const { return m_fov; }
 
 private:
     bool Key(int vk) const { return (GetAsyncKeyState(vk) & 0x8000) != 0; }

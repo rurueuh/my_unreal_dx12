@@ -11,6 +11,7 @@
 #include "CameraController.h"
 #include <chrono>
 #include <wrl.h>
+#include "ImGuiDx12.h"
 
 class WindowDX12 {
 public:
@@ -20,6 +21,20 @@ public:
         m_gfx.Initialize();
         m_swap.Create(m_gfx, m_window.GetHwnd(), w, h);
         m_depth.Create(m_gfx, w, h);
+        
+        m_imgui.Init(m_window.GetHwnd(), m_gfx, m_swap);
+        m_imgui.addText("DirectX 12 Renderer DEBUGGER");
+		m_imgui.addFPS();
+        m_imgui.AddButton("Toggle Wireframe", [this]() {
+            static bool wireframe = false;
+            wireframe = !wireframe;
+            setWireframe(wireframe);
+		});
+		m_imgui.addSeparator();
+        m_imgui.addSliderFloat("Camera Speed", &m_camController.GetMoveSpeed(), 0.1f, 20.0f, [this](float val) {
+            m_camController.SetMoveSpeeds(val, val * 5.f);
+		});
+
         m_renderer.Initialize(m_gfx, m_swap, m_depth);
 
         D3D12_INPUT_ELEMENT_DESC il[] = {
@@ -61,6 +76,10 @@ public:
 		return m_whiteTex;
 	}
 
+    ImGuiDx12& getImGui() {
+        return m_imgui;
+	}
+
     static void setWindowTitle(const std::wstring& title) {
         Get().m_window.SetTitle(title);
     }
@@ -92,6 +111,7 @@ public:
 
         m_drawCursor = 0;
         m_renderer.BeginFrame(m_swap.FrameIndex());
+		m_imgui.NewFrame();
     }
 
     void Draw(const Mesh& mesh)
@@ -115,6 +135,7 @@ public:
 
     void Display()
     {
+		m_imgui.Draw(m_renderer);
         const UINT frame = m_swap.FrameIndex();
         m_renderer.EndFrame(frame);
     }
@@ -156,6 +177,8 @@ private:
 
     Camera          m_camera;
     CameraController m_camController;
+
+	ImGuiDx12 m_imgui;
 
     DirectX::XMMATRIX m_view = DirectX::XMMatrixIdentity();
     DirectX::XMMATRIX m_proj = DirectX::XMMatrixIdentity();

@@ -76,13 +76,24 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 	weapon.SetPosition(0.0f, -15.0f, 20.0f);
 	weapon.SetScale(0.1f, 0.1f, 0.1f);
 
+	std::vector<std::shared_ptr<Mesh>> weapons = {};
+	win.getImGui().AddButton("Add Fighter Jet", [&weapons, &win]() {
+		std::shared_ptr<Mesh> weapon = std::make_shared<Mesh>("jet/fighter_jet.obj");
+		weapon->SetPosition(((rand() % 100) / 100.f - 0.5f) * 50.f,
+			((rand() % 100) / 100.f - 0.5f) * 50.f,
+			((rand() % 100) / 100.f - 0.5f) * 50.f
+		);
+		weapon->SetScale(0.1f, 0.1f, 0.1f);
+		weapons.push_back(std::move(weapon));
+	});
+
 
     while (win.IsOpen())
     {
         win.Clear();
 		win.Draw(weapon);
-        for (auto& c : cubes) {
-            win.Draw(c);
+        for (auto& c : weapons) {
+            win.Draw(*c);
         }
         if (GetAsyncKeyState('P') & 0x0001)
         {

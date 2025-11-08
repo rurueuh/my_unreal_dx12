@@ -1,6 +1,11 @@
 #pragma once
 #include <windows.h>
 #include <string>
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx12.h"
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
 
 class Window
@@ -91,6 +96,8 @@ private:
 
 	LRESULT WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 	{
+		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wp, lp))
+			return 1;
 		switch (msg)
 		{
 		case WM_SIZE:

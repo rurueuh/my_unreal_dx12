@@ -76,6 +76,8 @@ public:
         m_scissor = { 0, 0, static_cast<LONG>(newW), static_cast<LONG>(newH) };
     }
 
+    ID3D12GraphicsCommandList* GetCommandList() { return m_cmd.Get(); }
+
 private:
     GraphicsDevice* m_gd = nullptr;
     SwapChain* m_sc = nullptr;
