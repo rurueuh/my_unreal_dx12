@@ -3,8 +3,9 @@
 #include <d3d12.h>
 #include <d3dcompiler.h>
 #include <string>
-#include "Utils.h" 
 #include <vector>
+#include "Utils.h"
+
 using Microsoft::WRL::ComPtr;
 
 class ShaderPipeline
@@ -24,7 +25,7 @@ public:
 
         D3D12_ROOT_PARAMETER params[2]{};
         params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-        params[0].Descriptor.ShaderRegister = 0;
+        params[0].Descriptor.ShaderRegister = 0; // b0
         params[0].Descriptor.RegisterSpace = 0;
         params[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
@@ -50,12 +51,12 @@ public:
         D3D12_ROOT_SIGNATURE_DESC rsDesc{};
         rsDesc.NumParameters = 2;
         rsDesc.pParameters = params;
-		rsDesc.NumStaticSamplers = 1;
-		rsDesc.pStaticSamplers = &samp;
-        rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+        rsDesc.NumStaticSamplers = 1;
+        rsDesc.pStaticSamplers = &samp;
+        rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+            | D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS
+            | D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS
+            | D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
         ComPtr<ID3DBlob> sig, err;
         DXThrow(D3D12SerializeRootSignature(&rsDesc, D3D_ROOT_SIGNATURE_VERSION_1, &sig, &err));
@@ -66,53 +67,48 @@ public:
 #if defined(_DEBUG)
         compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
-
-
         DXThrow(D3DCompile(vsSource, strlen(vsSource), nullptr, nullptr, nullptr, "main", "vs_5_1", compileFlags, 0, m_vsBlob.GetAddressOf(), &compileErrs));
         if (compileErrs) OutputDebugStringA((char*)compileErrs->GetBufferPointer());
+        compileErrs.Reset();
         DXThrow(D3DCompile(psSource, strlen(psSource), nullptr, nullptr, nullptr, "main", "ps_5_1", compileFlags, 0, m_psBlob.GetAddressOf(), &compileErrs));
-		if (compileErrs) OutputDebugStringA((char*)compileErrs->GetBufferPointer());
+        if (compileErrs) OutputDebugStringA((char*)compileErrs->GetBufferPointer());
 
         m_cachedInputElements.assign(inputLayout, inputLayout + inputCount);
         m_cachedInputLayout = { m_cachedInputElements.data(), inputCount };
         m_cachedRTV = rtvFormat;
         m_cachedDSV = dsvFormat;
 
-        auto rast = CreateRast(false);
-
         auto blend = CreateBlend();
+        auto depth = CreateDepth();
 
-        auto ds = CreateDepth();
+        {
+            auto rastSolid = CreateRast(false);
+            auto psoDesc = CreatePso(rastSolid, blend, depth);
+            DXThrow(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_psoSolid)));
+        }
+        {
+            auto rastWire = CreateRast(true);
+            auto psoDesc = CreatePso(rastWire, blend, depth);
+            DXThrow(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_psoWire)));
+        }
 
-        auto pso = CreatePso(rast, blend, ds);
-
-        DXThrow(device->CreateGraphicsPipelineState(&pso, IID_PPV_ARGS(&m_pso)));
+        m_psoCurrent = m_psoSolid;
         this->device = device;
     }
 
     void setWireframe(bool enable)
     {
-        auto rast = CreateRast(enable);
-
-		auto blend = CreateBlend();
-
-        auto ds = CreateDepth();
-
-        auto pso = CreatePso(rast, blend, ds);
-
-        ComPtr<ID3D12PipelineState> newPSO;
-        DXThrow(device->CreateGraphicsPipelineState(&pso, IID_PPV_ARGS(&newPSO)));
-        m_pso = newPSO;
+        m_psoCurrent = enable ? m_psoWire : m_psoSolid;
     }
 
-    
-
-    ID3D12PipelineState* PSO() const { return m_pso.Get(); }
+    ID3D12PipelineState* PSO()  const { return m_psoCurrent.Get(); }
     ID3D12RootSignature* Root() const { return m_root.Get(); }
 
 private:
-
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC CreatePso(const D3D12_RASTERIZER_DESC& rast, const D3D12_BLEND_DESC& blend, const D3D12_DEPTH_STENCIL_DESC& ds)
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC CreatePso(
+        const D3D12_RASTERIZER_DESC& rast,
+        const D3D12_BLEND_DESC& blend,
+        const D3D12_DEPTH_STENCIL_DESC& depth)
     {
         D3D12_GRAPHICS_PIPELINE_STATE_DESC pso{};
         pso.pRootSignature = m_root.Get();
@@ -122,13 +118,12 @@ private:
         pso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         pso.RasterizerState = rast;
         pso.BlendState = blend;
-        pso.DepthStencilState = ds;
+        pso.DepthStencilState = depth;
         pso.NumRenderTargets = 1;
         pso.RTVFormats[0] = m_cachedRTV;
         pso.DSVFormat = m_cachedDSV;
         pso.SampleDesc = { 1, 0 };
         pso.SampleMask = UINT_MAX;
-
         return pso;
     }
 
@@ -139,6 +134,11 @@ private:
         d.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
         d.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
         d.StencilEnable = FALSE;
+        d.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+        d.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+        d.FrontFace = { D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP,
+                        D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
+        d.BackFace = d.FrontFace;
         return d;
     }
 
@@ -148,26 +148,42 @@ private:
         r.FillMode = wireframed ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
         r.CullMode = D3D12_CULL_MODE_BACK;
         r.FrontCounterClockwise = FALSE;
+        r.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+        r.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+        r.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
         r.DepthClipEnable = TRUE;
         r.MultisampleEnable = FALSE;
         r.AntialiasedLineEnable = FALSE;
+        r.ForcedSampleCount = 0;
+        r.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
         return r;
     }
 
     D3D12_BLEND_DESC CreateBlend()
-	{
+    {
         D3D12_BLEND_DESC b{};
+        b.AlphaToCoverageEnable = FALSE;
         b.IndependentBlendEnable = FALSE;
         auto& rt = b.RenderTarget[0];
         rt.BlendEnable = FALSE;
+        rt.LogicOpEnable = FALSE;
+        rt.SrcBlend = D3D12_BLEND_ONE;
+        rt.DestBlend = D3D12_BLEND_ZERO;
+        rt.BlendOp = D3D12_BLEND_OP_ADD;
+        rt.SrcBlendAlpha = D3D12_BLEND_ONE;
+        rt.DestBlendAlpha = D3D12_BLEND_ZERO;
+        rt.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+        rt.LogicOp = D3D12_LOGIC_OP_NOOP;
         rt.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
         return b;
-	}
+    }
 
 private:
-
     ComPtr<ID3D12RootSignature> m_root;
-    ComPtr<ID3D12PipelineState> m_pso;
+
+    ComPtr<ID3D12PipelineState> m_psoSolid;
+    ComPtr<ID3D12PipelineState> m_psoWire;
+    ComPtr<ID3D12PipelineState> m_psoCurrent;
 
     ComPtr<ID3DBlob> m_vsBlob;
     ComPtr<ID3DBlob> m_psBlob;

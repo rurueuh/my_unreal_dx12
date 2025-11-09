@@ -21,7 +21,8 @@ public:
         ComPtr<ID3D12Debug1> dbg;
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&dbg)))) {
             dbg->EnableDebugLayer();
-            dbg->SetEnableGPUBasedValidation(TRUE);
+            ComPtr<ID3D12Debug1> dbg1;
+            if (SUCCEEDED(dbg.As(&dbg1))) dbg1->SetEnableGPUBasedValidation(TRUE);
         }
         #endif
         m_window.Create(title, w, h);
@@ -74,8 +75,6 @@ public:
         }
         ResourceCache::I().setDefaultWhiteTexture(getDefaultTextureShared());
 #if _DEBUG
-        if (Microsoft::WRL::ComPtr<ID3D12Debug> dbg; SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&dbg))))
-            dbg->EnableDebugLayer();
         ComPtr<ID3D12InfoQueue> q;
         GetDevice()->QueryInterface(IID_PPV_ARGS(&q));
         q->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
