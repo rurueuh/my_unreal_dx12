@@ -52,6 +52,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 {
     WindowDX12::ActivateConsole();
 	auto& win = WindowDX12::Get();
+	/*ComPtr<ID3D12Debug1> dbg;
+	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&dbg)))) {
+		dbg->EnableDebugLayer();
+		dbg->SetEnableGPUBasedValidation(TRUE);
+	}*/
+	ComPtr<ID3D12InfoQueue> q;
+	win.GetDevice()->QueryInterface(IID_PPV_ARGS(&q));
+	q->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
+	q->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
 	win.setWindowTitle(L"My ruru");
 	win.setWindowSize(1920, 1080);
 	srand(static_cast<unsigned int>(time(nullptr)));

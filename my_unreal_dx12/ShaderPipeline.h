@@ -63,8 +63,8 @@ public:
 
         ComPtr<ID3DBlob> compileErrs;
         UINT compileFlags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
-#ifdef DEBUG
-        compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION
+#if defined(_DEBUG)
+        compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
 

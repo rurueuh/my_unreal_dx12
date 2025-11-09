@@ -5,21 +5,23 @@
 #include "MeshAsset.h"
 #include "ResourceCache.h"
 
-struct Vertex { float px, py, pz; float r, g, b; float u, v; };
+struct Vertex {
+    float px, py, pz;
+    float nx, ny, nz;
+    float r, g, b;
+    float u, v;
+};
 
 class Mesh {
 public:
-    // Instances = partage des ressources (copy-friendly)
     Mesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices);
     Mesh(const std::string& filename);
 
-    // Copy = partage (ok), Move = ok
     Mesh(const Mesh&) = default;
     Mesh& operator=(const Mesh&) = default;
     Mesh(Mesh&&) noexcept = default;
     Mesh& operator=(Mesh&&) noexcept = default;
 
-    // Transform / couleur (spécifiques à l’instance)
     void SetPosition(float x, float y, float z);
     void AddPosition(float dx, float dy, float dz);
     void SetRotationYawPitchRoll(float yaw, float pitch, float roll);
@@ -38,13 +40,11 @@ public:
         return m_asset->texture ? m_asset->texture : ResourceCache::I().defaultWhite();
     }
 
-    void setColor(float r, float g, float b); // met à jour la couleur CPU + re-upload (optionnel)
+    void setColor(float r, float g, float b);
     std::tuple<float, float, float> getColor() const;
 
-    // Bind
     void BindTexture(ID3D12GraphicsCommandList* cmdList, UINT rootParamIndex) const;
 
-    // Accès draw
     const D3D12_VERTEX_BUFFER_VIEW& VBV() const { return m_asset->vbv; }
     const D3D12_INDEX_BUFFER_VIEW& IBV() const { return m_asset->ibv; }
     UINT IndexCount() const { return m_asset->indexCount; }

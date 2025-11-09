@@ -77,9 +77,15 @@ static uint16_t getIndexForKey(
     Vertex vert{};
     const auto& p = positions[(vi > 0 ? vi - 1 : 0)];
     vert.px = p.x; vert.py = p.y; vert.pz = p.z;
+    if (ni > 0 && (size_t)(ni - 1) < normals.size()) {
+        const auto& n = normals[ni - 1];
+        vert.nx = n.x; vert.ny = n.y; vert.nz = n.z;
+    }
+    else {
+        vert.nx = 0.0f; vert.ny = 1.0f; vert.nz = 0.0f;
+    }
     vert.r = vert.g = vert.b = 1.0f;
-
-    if (ti > 0) {
+    if (ti > 0 && (size_t)(ti - 1) < texcoords.size()) {
         const auto& t = texcoords[ti - 1];
         vert.u = t.x; vert.v = 1.0f - t.y;
     }
@@ -90,6 +96,40 @@ static uint16_t getIndexForKey(
     outVertices.push_back(vert);
     map[key] = next;
     return next++;
+}
+
+static void RecomputeSmoothNormals(std::vector<Vertex>& verts,
+    const std::vector<uint16_t>& idx)
+{
+    for (auto& v : verts) { v.nx = v.ny = v.nz = 0.0f; }
+
+    for (size_t i = 0; i + 2 < idx.size(); i += 3) {
+        Vertex& a = verts[idx[i]];
+        Vertex& b = verts[idx[i + 1]];
+        Vertex& c = verts[idx[i + 2]];
+
+        DirectX::XMVECTOR pa = DirectX::XMVectorSet(a.px, a.py, a.pz, 0);
+        DirectX::XMVECTOR pb = DirectX::XMVectorSet(b.px, b.py, b.pz, 0);
+        DirectX::XMVECTOR pc = DirectX::XMVectorSet(c.px, c.py, c.pz, 0);
+
+        DirectX::XMVECTOR ab = DirectX::XMVectorSubtract(pb, pa);
+        DirectX::XMVECTOR ac = DirectX::XMVectorSubtract(pc, pa);
+        DirectX::XMVECTOR n = DirectX::XMVector3Cross(ab, ac);
+
+        DirectX::XMFLOAT3 nf;
+        DirectX::XMStoreFloat3(&nf, n);
+        a.nx += nf.x; a.ny += nf.y; a.nz += nf.z;
+        b.nx += nf.x; b.ny += nf.y; b.nz += nf.z;
+        c.nx += nf.x; c.ny += nf.y; c.nz += nf.z;
+    }
+
+    for (auto& v : verts) {
+        DirectX::XMVECTOR n = DirectX::XMVectorSet(v.nx, v.ny, v.nz, 0);
+        n = DirectX::XMVector3Normalize(n);
+        DirectX::XMFLOAT3 nf;
+        DirectX::XMStoreFloat3(&nf, n);
+        v.nx = nf.x; v.ny = nf.y; v.nz = nf.z;
+    }
 }
 
 void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_ptr<Texture> defaultWhite)
@@ -184,6 +224,11 @@ void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_p
 
     if (!out.texture)
         out.texture = defaultWhite;
+
+	bool hasNormals = !normals.empty();
+    if (!hasNormals) {
+        RecomputeSmoothNormals(out.vertices, out.indices);
+	}
 }
 
 

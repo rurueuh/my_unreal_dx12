@@ -11,12 +11,6 @@ void ImGuiDx12::Draw(Renderer &r)
         | ImGuiWindowFlags_NoNav;
 
     ImGui::Begin("Overlay", nullptr, flags);
-    //ImGui::TextUnformatted("Hello");
-    //ImGui::Separator();
-    //ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-    //static bool pressed = false;
-    //if (ImGui::Button("Toggle Button")) pressed = !pressed;
-    //if (pressed) ImGui::Text("Button Pressed");
 
     for (auto& item : m_items) {
         item->DrawImGui();
