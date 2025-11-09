@@ -40,24 +40,31 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 	auto& win = WindowDX12::Get();
 	
 	win.setWindowTitle(L"My ruru");
-	win.setWindowSize(1920, 1080);
+	win.setWindowSize(1280, 800);
 	srand(static_cast<unsigned int>(time(nullptr)));
 
 	std::vector<std::shared_ptr<Mesh>> weapons = {};
-	auto t = std::make_shared<Mesh>("jet/fighter_jet.obj");
+	auto t = std::make_shared<Mesh>("mirage2000/scene.obj");
 	t->SetPosition(0.f, -10.f, 30.f);
-	t->SetScale(0.1f, 0.1f, 0.1f);
 	weapons.push_back(t);
 	auto meshDraw = win.getImGui().addText("Mesh: 0");
 	win.getImGui().AddButton("Add Fighter Jet", [&weapons, &win, &meshDraw]() {
-		std::shared_ptr<Mesh> weapon = std::make_shared<Mesh>("jet/fighter_jet.obj");
+		std::shared_ptr<Mesh> weapon = std::make_shared<Mesh>("mirage2000/scene.obj");
 		weapon->SetPosition(((rand() % 100) / 100.f - 0.5f) * 50.f,
 			((rand() % 100) / 100.f - 0.5f) * 50.f,
 			((rand() % 100) / 100.f - 0.5f) * 50.f
 		);
-		weapon->SetScale(0.1f, 0.1f, 0.1f);
 		weapons.push_back(std::move(weapon));
 		meshDraw->setText("Mesh: %u", weapons.size());
+	});
+
+	win.getImGui().addSeparator();
+	float rotateFighter = 0.0f;
+	weapons[0]->SetRotationYawPitchRoll(3.0f, 0.0f, 0.0f);
+	win.getImGui().addSliderFloat("rotate fighter0", &rotateFighter, 0.0f, 360.0f, [&weapons](float val) {
+		if (weapons.size() > 0) {
+			weapons[0]->SetRotationYawPitchRoll(val, val, val);
+		}
 	});
 
 	auto triangleText = win.getImGui().addText("Triangles: 0");

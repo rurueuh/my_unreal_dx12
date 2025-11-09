@@ -1,5 +1,24 @@
 ﻿#include "Mesh.h"
 #include "WindowDX12.h"
+using namespace DirectX;
+
+static inline float Deg(float d) { return XMConvertToRadians(d); }
+
+static inline void NormalizeSafe(XMVECTOR& q) {
+    if (XMVector4Less(XMVector4LengthSq(q), XMVectorReplicate(1e-20f))) {
+        q = XMQuaternionIdentity();
+    }
+    else {
+        q = XMQuaternionNormalize(q);
+    }
+}
+
+void Mesh::UpdateMatrix() {
+    const XMMATRIX S = XMMatrixScalingFromVector(m_scale);
+    const XMMATRIX R = XMMatrixRotationQuaternion(m_rotQ);
+    const XMMATRIX T = XMMatrixTranslationFromVector(m_position);
+    m_transform = S * R * T;
+}
 
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
     m_asset = std::make_shared<MeshAsset>();
@@ -7,11 +26,13 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
     m_asset->indices = indices;
     m_asset->texture = ResourceCache::I().defaultWhite();
     m_asset->Upload(WindowDX12::Get().GetDevice());
+    UpdateMatrix();
 }
 
 Mesh::Mesh(const std::string& filename) {
     m_asset = ResourceCache::I().getMeshFromOBJ(filename);
     if (!m_asset->texture) m_asset->texture = ResourceCache::I().defaultWhite();
+    UpdateMatrix();
 }
 
 void Mesh::setColor(float r, float g, float b) {
@@ -24,29 +45,40 @@ std::tuple<float, float, float> Mesh::getColor() const {
     return { v.r, v.g, v.b };
 }
 
-void Mesh::SetPosition(float x, float y, float z) { m_transform.r[3] = DirectX::XMVectorSet(x, y, z, 1.0f); }
+void Mesh::SetPosition(float x, float y, float z) {
+    m_position = XMVectorSet(x, y, z, 0.0f);
+    UpdateMatrix();
+}
 void Mesh::AddPosition(float dx, float dy, float dz) {
-    m_transform.r[3] = DirectX::XMVectorAdd(m_transform.r[3], DirectX::XMVectorSet(dx, dy, dz, 0.0f));
+    m_position = XMVectorAdd(m_position, XMVectorSet(dx, dy, dz, 0.0f));
+    UpdateMatrix();
 }
-void Mesh::SetRotationYawPitchRoll(float yaw, float pitch, float roll) {
-    auto rot = DirectX::XMMatrixRotationRollPitchYaw(pitch, yaw, roll);
-    m_transform.r[0] = rot.r[0]; m_transform.r[1] = rot.r[1]; m_transform.r[2] = rot.r[2];
+
+void Mesh::SetRotationYawPitchRoll(float yawDeg, float pitchDeg, float rollDeg) {
+    m_rotQ = XMQuaternionRotationRollPitchYaw(Deg(pitchDeg), Deg(yawDeg), Deg(rollDeg));
+    NormalizeSafe(m_rotQ);
+    UpdateMatrix();
 }
-void Mesh::AddRotationYawPitchRoll(float dy, float dp, float dr) {
-    DirectX::XMMATRIX cur{}; cur.r[0] = m_transform.r[0]; cur.r[1] = m_transform.r[1]; cur.r[2] = m_transform.r[2]; cur.r[3] = DirectX::XMVectorSet(0, 0, 0, 1);
-    auto d = DirectX::XMMatrixRotationRollPitchYaw(dp, dy, dr);
-    auto n = DirectX::XMMatrixMultiply(d, cur);
-    m_transform.r[0] = n.r[0]; m_transform.r[1] = n.r[1]; m_transform.r[2] = n.r[2];
+
+void Mesh::AddRotationYawPitchRoll(float dyawDeg, float dpitchDeg, float drollDeg) {
+    const XMVECTOR dq = XMQuaternionRotationRollPitchYaw(Deg(dpitchDeg), Deg(dyawDeg), Deg(drollDeg));
+    m_rotQ = XMQuaternionMultiply(m_rotQ, dq);
+    NormalizeSafe(m_rotQ);
+    UpdateMatrix();
 }
+
 void Mesh::SetScale(float sx, float sy, float sz) {
-    m_transform.r[0] = DirectX::XMVectorSetX(m_transform.r[0], sx);
-    m_transform.r[1] = DirectX::XMVectorSetY(m_transform.r[1], sy);
-    m_transform.r[2] = DirectX::XMVectorSetZ(m_transform.r[2], sz);
+    m_scale = XMVectorSet(sx, sy, sz, 0.0f);
+    UpdateMatrix();
 }
 void Mesh::AddScale(float dsx, float dsy, float dsz) {
-    m_transform.r[0] = DirectX::XMVectorAdd(m_transform.r[0], DirectX::XMVectorSet(dsx, 0, 0, 0));
-    m_transform.r[1] = DirectX::XMVectorAdd(m_transform.r[1], DirectX::XMVectorSet(0, dsy, 0, 0));
-    m_transform.r[2] = DirectX::XMVectorAdd(m_transform.r[2], DirectX::XMVectorSet(0, 0, dsz, 0));
+    m_scale = XMVectorAdd(m_scale, XMVectorSet(dsx, dsy, dsz, 0.0f));
+    XMFLOAT3 s; XMStoreFloat3(&s, m_scale);
+    if (s.x == 0) s.x = 1e-6f;
+    if (s.y == 0) s.y = 1e-6f;
+    if (s.z == 0) s.z = 1e-6f;
+    m_scale = XMVectorSet(s.x, s.y, s.z, 0.0f);
+    UpdateMatrix();
 }
 
 void Mesh::BindTexture(ID3D12GraphicsCommandList* cmdList, UINT rootParamIndex) const {

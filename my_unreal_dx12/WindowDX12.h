@@ -83,7 +83,7 @@ public:
     }
 
     static WindowDX12& Get() {
-        static WindowDX12 instance(1280, 720, L"DX12 Window");
+        static WindowDX12 instance(800, 600, L"DX12 Window");
         return instance;
     }
     

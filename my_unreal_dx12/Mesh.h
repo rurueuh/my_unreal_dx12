@@ -1,4 +1,3 @@
-// Mesh.h
 #pragma once
 #include <memory>
 #include <DirectXMath.h>
@@ -22,13 +21,18 @@ public:
     Mesh(Mesh&&) noexcept = default;
     Mesh& operator=(Mesh&&) noexcept = default;
 
+    // Transform API (angles en DEGRÉS)
     void SetPosition(float x, float y, float z);
     void AddPosition(float dx, float dy, float dz);
-    void SetRotationYawPitchRoll(float yaw, float pitch, float roll);
-    void AddRotationYawPitchRoll(float dyaw, float dpitch, float droll);
+
+    void SetRotationYawPitchRoll(float yawDeg, float pitchDeg, float rollDeg);          // remplace l’orientation
+    void AddRotationYawPitchRoll(float dyawDeg, float dpitchDeg, float drollDeg);      // incrémente (local)
+
     void SetScale(float sx, float sy, float sz);
     void AddScale(float dsx, float dsy, float dsz);
+
     const DirectX::XMMATRIX& Transform() const { return m_transform; }
+
     void SetTexture(std::shared_ptr<Texture> t) { if (m_asset) m_asset->texture = std::move(t); }
     Texture* GetTexture() const {
         if (!m_asset) return nullptr;
@@ -50,6 +54,15 @@ public:
     UINT IndexCount() const { return m_asset->indexCount; }
 
 private:
+    void UpdateMatrix();
+
+private:
     std::shared_ptr<MeshAsset> m_asset;
+
+    // Nouveau: TRS décomposé
+    DirectX::XMVECTOR m_position{ DirectX::XMVectorZero() };
+    DirectX::XMVECTOR m_scale{ DirectX::XMVectorSet(1,1,1,0) };
+    DirectX::XMVECTOR m_rotQ{ DirectX::XMQuaternionIdentity() };
+
     DirectX::XMMATRIX m_transform{ DirectX::XMMatrixIdentity() };
 };
