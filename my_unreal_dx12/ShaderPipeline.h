@@ -52,15 +52,26 @@ public:
         rsDesc.pParameters = params;
 		rsDesc.NumStaticSamplers = 1;
 		rsDesc.pStaticSamplers = &samp;
-        rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+        rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
         ComPtr<ID3DBlob> sig, err;
         DXThrow(D3D12SerializeRootSignature(&rsDesc, D3D_ROOT_SIGNATURE_VERSION_1, &sig, &err));
         DXThrow(device->CreateRootSignature(0, sig->GetBufferPointer(), sig->GetBufferSize(), IID_PPV_ARGS(&m_root)));
 
         ComPtr<ID3DBlob> compileErrs;
-        DXThrow(D3DCompile(vsSource, ::strlen(vsSource), nullptr, nullptr, nullptr, "main", "vs_5_1", 0, 0, m_vsBlob.GetAddressOf(), &compileErrs));
-        DXThrow(D3DCompile(psSource, ::strlen(psSource), nullptr, nullptr, nullptr, "main", "ps_5_1", 0, 0, m_psBlob.GetAddressOf(), &compileErrs));
+        UINT compileFlags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
+#ifdef DEBUG
+        compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION
+#endif
+
+
+        DXThrow(D3DCompile(vsSource, strlen(vsSource), nullptr, nullptr, nullptr, "main", "vs_5_1", compileFlags, 0, m_vsBlob.GetAddressOf(), &compileErrs));
+        if (compileErrs) OutputDebugStringA((char*)compileErrs->GetBufferPointer());
+        DXThrow(D3DCompile(psSource, strlen(psSource), nullptr, nullptr, nullptr, "main", "ps_5_1", compileFlags, 0, m_psBlob.GetAddressOf(), &compileErrs));
+		if (compileErrs) OutputDebugStringA((char*)compileErrs->GetBufferPointer());
 
         m_cachedInputElements.assign(inputLayout, inputLayout + inputCount);
         m_cachedInputLayout = { m_cachedInputElements.data(), inputCount };
@@ -123,31 +134,34 @@ private:
 
     D3D12_DEPTH_STENCIL_DESC CreateDepth()
     {
-        D3D12_DEPTH_STENCIL_DESC ds{};
-        ds.DepthEnable = TRUE;
-        ds.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-        ds.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-
-        return ds;
+        D3D12_DEPTH_STENCIL_DESC d{};
+        d.DepthEnable = TRUE;
+        d.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+        d.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+        d.StencilEnable = FALSE;
+        return d;
     }
 
     D3D12_RASTERIZER_DESC CreateRast(bool wireframed)
     {
-        D3D12_RASTERIZER_DESC rast{};
-        rast.FillMode = wireframed ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
-        rast.CullMode = D3D12_CULL_MODE_BACK;
-        rast.FrontCounterClockwise = FALSE;
-        rast.DepthClipEnable = TRUE;
-
-        return rast;
+        D3D12_RASTERIZER_DESC r{};
+        r.FillMode = wireframed ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
+        r.CullMode = D3D12_CULL_MODE_BACK;
+        r.FrontCounterClockwise = FALSE;
+        r.DepthClipEnable = TRUE;
+        r.MultisampleEnable = FALSE;
+        r.AntialiasedLineEnable = FALSE;
+        return r;
     }
 
     D3D12_BLEND_DESC CreateBlend()
 	{
-        D3D12_BLEND_DESC blend{};
-        blend.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
-	    return blend;
+        D3D12_BLEND_DESC b{};
+        b.IndependentBlendEnable = FALSE;
+        auto& rt = b.RenderTarget[0];
+        rt.BlendEnable = FALSE;
+        rt.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+        return b;
 	}
 
 private:
