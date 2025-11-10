@@ -65,6 +65,9 @@ public:
 	SliderFloatItem(const char* lbl, float* val, float mn, float mx, std::function<void(float)> o)
 		: label(lbl), value(val), onChange(std::move(o)) {
 		min = mn; max = mx;
+		if (!value) {
+			value = &dummy;
+		}
 	}
 	void DrawImGui() override {
 		if (ImGui::SliderFloat(label, value, min, max)) {
@@ -75,6 +78,7 @@ public:
 private:
 	const char* label;
 	std::function<void(float)> onChange;
+	float dummy = 0.0f;
 	float* value;
 	float min;
 	float max;
