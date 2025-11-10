@@ -4,6 +4,7 @@
 #include <dxgi1_6.h>
 #include "Utils.h"
 #include <iostream>
+#include <stdexcept>
 
 using Microsoft::WRL::ComPtr;
 
@@ -11,10 +12,19 @@ using Microsoft::WRL::ComPtr;
 class GraphicsDevice
 {
 public:
-	void Initialize()
-	{
+        ~GraphicsDevice()
+        {
+                if (m_fenceEvent)
+                {
+                        CloseHandle(m_fenceEvent);
+                        m_fenceEvent = nullptr;
+                }
+        }
+
+        void Initialize()
+        {
 #if defined(_DEBUG)
-		if (ComPtr<ID3D12Debug> dbg; SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&dbg))))
+                if (ComPtr<ID3D12Debug> dbg; SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&dbg))))
 			dbg->EnableDebugLayer();
 		UINT flags = DXGI_CREATE_FACTORY_DEBUG;
 #else
@@ -47,9 +57,13 @@ public:
 		DXThrow(m_device->CreateCommandQueue(&q, IID_PPV_ARGS(&m_queue)));
 
 
-		DXThrow(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-		m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-	}
+                DXThrow(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+                m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+                if (!m_fenceEvent)
+                {
+                        throw std::runtime_error("Failed to create fence event");
+                }
+        }
 
 
 	IDXGIFactory7* Factory() const { return m_factory.Get(); }
