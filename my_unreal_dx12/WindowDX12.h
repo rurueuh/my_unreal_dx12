@@ -149,17 +149,24 @@ public:
         const XMMATRIX M = mesh.Transform();
         const XMMATRIX V = m_camera.View();
         const XMMATRIX P = m_camera.Proj();
+        const XMMATRIX VP = V * P;
 
-        XMFLOAT4X4 mvp;
-        XMStoreFloat4x4(&mvp, XMMatrixTranspose(M * V * P));
+        XMVECTOR det;
+        const XMMATRIX MInv = XMMatrixInverse(&det, M);
+        const XMMATRIX NMat = XMMatrixTranspose(MInv);
+
+        SceneCB cb{};
+        XMStoreFloat4x4(&cb.uModel, XMMatrixTranspose(M));
+        XMStoreFloat4x4(&cb.uViewProj, XMMatrixTranspose(VP));
+        XMStoreFloat4x4(&cb.uNormalMatrix, XMMatrixTranspose(NMat));
 
         const UINT frame = m_swap.FrameIndex();
         const UINT slice = frame * kMaxDrawsPerFrame + (m_drawCursor++);
 
-        auto addr = m_cb.UploadSlice(slice, mvp);
+        auto addr = m_cb.UploadSlice(slice, cb);
 
         m_renderer.DrawMesh(mesh, addr);
-		m_trianglesCount += mesh.IndexCount() / 3;
+        m_trianglesCount += mesh.IndexCount() / 3;
     }
 
     void Display()
