@@ -1,6 +1,6 @@
 #include "ResourceCache.h"
 #include "Mesh.h"
-#include "windowDX12.h"
+#include "WindowDX12.h"
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
@@ -60,7 +60,9 @@ static void parseVtxToken(const std::string& tok, int& vi, int& ti, int& ni) {
 }
 
 static uint32_t getIndexForKey(
-    const std::string& key,
+    const std::string& token,
+    const std::string& materialKey,
+    const Material* material,
     std::unordered_map<std::string, uint32_t>& map,
     uint32_t& next,
     std::vector<Vertex>& outVertices,
@@ -68,11 +70,15 @@ static uint32_t getIndexForKey(
     const std::vector<DirectX::XMFLOAT2>& texcoords,
     const std::vector<DirectX::XMFLOAT3>& normals)
 {
-    auto it = map.find(key);
+    std::string combinedKey = token;
+    combinedKey.push_back('|');
+    combinedKey += materialKey;
+
+    auto it = map.find(combinedKey);
     if (it != map.end()) return it->second;
 
     int vi = 0, ti = 0, ni = 0;
-    parseVtxToken(key, vi, ti, ni);
+    parseVtxToken(token, vi, ti, ni);
 
     Vertex vert{};
     const auto& p = positions[(vi > 0 ? vi - 1 : 0)];
@@ -84,7 +90,16 @@ static uint32_t getIndexForKey(
     else {
         vert.nx = 0.0f; vert.ny = 1.0f; vert.nz = 0.0f;
     }
-    vert.r = vert.g = vert.b = 1.0f;
+    if (material)
+    {
+        vert.r = material->Kd.x;
+        vert.g = material->Kd.y;
+        vert.b = material->Kd.z;
+    }
+    else
+    {
+        vert.r = vert.g = vert.b = 1.0f;
+    }
     if (ti > 0 && (size_t)(ti - 1) < texcoords.size()) {
         const auto& t = texcoords[ti - 1];
         vert.u = t.x; vert.v = 1.0f - t.y;
@@ -94,7 +109,7 @@ static uint32_t getIndexForKey(
     }
 
     outVertices.push_back(vert);
-    map[key] = next;
+    map[combinedKey] = next;
     return next++;
 }
 
@@ -151,6 +166,39 @@ void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_p
     std::unordered_map<std::string, uint32_t> vertexMap;
     uint32_t nextIndex = 0;
 
+    std::string currentMaterialName;
+    const Material* currentMaterial = nullptr;
+    std::unordered_map<std::string, std::shared_ptr<Texture>> materialTextures;
+
+    auto getMaterialTexture = [&](const std::string& name) -> std::shared_ptr<Texture>
+    {
+        auto it = materialTextures.find(name);
+        if (it != materialTextures.end())
+            return it->second;
+
+        auto matIt = materials.find(name);
+        if (matIt == materials.end() || matIt->second.map_Kd.empty())
+        {
+            materialTextures[name] = nullptr;
+            return nullptr;
+        }
+
+        const std::string texPath = joinPath(baseDir, matIt->second.map_Kd);
+        auto tex = std::make_shared<Texture>();
+        try
+        {
+            tex->LoadFromFile(WindowDX12::Get().GetGraphicsDevice(), texPath.c_str());
+            materialTextures[name] = tex;
+            return tex;
+        }
+        catch (...)
+        {
+            std::cerr << "Error texture: " << texPath << "\n";
+            materialTextures[name] = nullptr;
+            return nullptr;
+        }
+    };
+
     std::string line;
     while (std::getline(file, line)) {
         std::istringstream iss(line);
@@ -181,7 +229,7 @@ void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_p
             std::vector<uint32_t> faceIdx;
             faceIdx.reserve(toks.size());
             for (auto& t : toks) {
-                uint32_t idx = getIndexForKey(t, vertexMap, nextIndex, out.vertices, positions, texcoords, normals);
+                uint32_t idx = getIndexForKey(t, currentMaterialName, currentMaterial, vertexMap, nextIndex, out.vertices, positions, texcoords, normals);
                 faceIdx.push_back(idx);
             }
             for (size_t i = 2; i < faceIdx.size(); ++i) {
@@ -197,25 +245,17 @@ void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_p
         else if (type == "usemtl") {
             std::string name; iss >> name;
             auto it = materials.find(name);
-            if (it != materials.end()) {
-                const auto kd = it->second.Kd;
-                for (auto& v : out.vertices) {
-                    v.r = kd.x; v.g = kd.y; v.b = kd.z;
-                }
+            currentMaterialName = name;
+            currentMaterial = (it != materials.end()) ? &it->second : nullptr;
 
-                if (!it->second.map_Kd.empty()) {
-                    const std::string texPath = joinPath(baseDir, it->second.map_Kd);
-                    auto tex = std::make_shared<Texture>();
-                    try {
-                        tex->LoadFromFile(WindowDX12::Get().GetGraphicsDevice(), texPath.c_str());
-                        out.texture = tex;
-                    }
-                    catch (...) {
-                        std::cerr << "Error texture: " << texPath << "\n";
-                        out.texture = defaultWhite;
-                    }
+            if (!out.texture)
+            {
+                if (auto tex = getMaterialTexture(name))
+                {
+                    out.texture = tex;
                 }
-                else {
+                else
+                {
                     out.texture = defaultWhite;
                 }
             }
@@ -225,21 +265,37 @@ void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_p
     if (!out.texture)
         out.texture = defaultWhite;
 
-	bool hasNormals = !normals.empty();
+    bool hasNormals = !normals.empty();
     if (!hasNormals) {
         RecomputeSmoothNormals(out.vertices, out.indices);
-	}
+    }
 }
 
 
 std::shared_ptr<MeshAsset> ResourceCache::getMeshFromOBJ(const std::string& path) {
-    std::lock_guard<std::mutex> lk(mu_);
-    if (auto sp = meshCache_[path].lock())
-        return sp;
+    std::shared_ptr<Texture> defaultWhiteCopy;
+    {
+        std::lock_guard<std::mutex> lk(mu_);
+        auto it = meshCache_.find(path);
+        if (it != meshCache_.end()) {
+            if (auto sp = it->second.lock())
+                return sp;
+        }
+        defaultWhiteCopy = defaultWhite_;
+    }
 
     auto asset = std::make_shared<MeshAsset>();
-    LoadOBJIntoAsset(path, *asset, defaultWhite_);
+    LoadOBJIntoAsset(path, *asset, defaultWhiteCopy);
     asset->Upload(WindowDX12::Get().GetDevice());
-    meshCache_[path] = asset;
+
+    std::lock_guard<std::mutex> lk(mu_);
+    auto it = meshCache_.find(path);
+    if (it != meshCache_.end()) {
+        if (auto sp = it->second.lock())
+            return sp;
+        it->second = asset;
+    } else {
+        meshCache_.emplace(path, asset);
+    }
     return asset;
 }

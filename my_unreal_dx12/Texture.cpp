@@ -1,6 +1,7 @@
-﻿#include "Texture.h"
+#include "Texture.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include <stdexcept>
 
 void Texture::LoadFromFile(GraphicsDevice& gd, const char* path)
 {
