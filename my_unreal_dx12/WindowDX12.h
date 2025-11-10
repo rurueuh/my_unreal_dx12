@@ -61,14 +61,14 @@ public:
         m_camera.LookAt(DirectX::XMVectorSet(0, 0, -5, 0),
             DirectX::XMVectorSet(0, 0, 0, 0),
             DirectX::XMVectorSet(0, 1, 0, 0));
-        m_camera.SetPerspective(DirectX::XM_PIDIV4, aspect, 0.1f, 10.0f);
+		m_camera.SetPerspective(DirectX::XM_PIDIV4, aspect, m_camController.getNearZ(), m_camController.getFarZ());
         m_view = m_camera.View();
         m_proj = m_camera.Proj();
 
         m_camController = CameraController();
         m_camController.SetPosition({ 0,0,-5 });
         m_camController.SetYawPitch(0.0f, 0.0f);
-        m_camController.SetProj(DirectX::XM_PIDIV4, 0.1f, 1000.0f);
+		m_camController.SetProj(DirectX::XM_PIDIV4, m_camController.getNearZ(), m_camController.getFarZ());
         if (!m_whitePtr) {
             m_whitePtr = std::make_shared<Texture>();
             m_whitePtr->InitWhite1x1(m_gfx);
@@ -124,7 +124,7 @@ public:
             m_renderer.OnResize(m_window.GetWidth(), m_window.GetHeight());
 
             const float aspect = float(m_window.GetWidth()) / float(m_window.GetHeight());
-            m_camera.SetPerspective(DirectX::XM_PIDIV4, aspect, 0.1f, 100.0f);
+			m_camera.SetPerspective(DirectX::XM_PIDIV4, aspect, m_camController.getNearZ(), m_camController.getFarZ());
             m_view = m_camera.View();
             m_proj = m_camera.Proj();
         }

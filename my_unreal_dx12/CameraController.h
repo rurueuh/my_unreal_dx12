@@ -65,6 +65,8 @@ public:
 	float GetMouseSensitivity() const { return m_sens; }
     void SetProj(float fov, float zn, float zf) { m_fov = fov; m_nearZ = zn; m_farZ = zf; }
 	float GetFov() const { return m_fov; }
+	float getNearZ() const { return m_nearZ; }
+	float getFarZ() const { return m_farZ; }
 
 private:
     bool Key(int vk) const { return (GetAsyncKeyState(vk) & 0x8000) != 0; }
@@ -95,5 +97,5 @@ private:
     float  m_sens = 0.0025f;       // rad/pixel
 
     float  m_fov = DirectX::XM_PIDIV4;
-    float  m_nearZ = 0.1f, m_farZ = 10.0f;
+    float  m_nearZ = 0.1f, m_farZ = 1000.0f;
 };

@@ -31,8 +31,6 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 
-
-
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 {
 	
