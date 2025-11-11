@@ -41,9 +41,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 	win.setWindowSize(1920, 1080);
 	srand(static_cast<unsigned int>(time(nullptr)));
 
-	Mesh floor = Mesh::CreatePlane(100.0f, 100.0f, 10, 10);
+	Mesh floor = Mesh::CreatePlane(100.0f, 100.0f, 2, 2);
 	floor.SetPosition(0.f, -5.f, 0.f);
-	floor.SetRotationYawPitchRoll(0.f, 0.f, 180.f);
+	floor.setColor(0.3f, 0.0f, 0.1f);
 
 	std::vector<std::shared_ptr<Mesh>> geometricsMeshes = {};
 	auto cubeMesh = std::make_shared<Mesh>(Mesh::CreateCube(2.0f));

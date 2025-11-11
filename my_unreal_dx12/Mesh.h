@@ -23,11 +23,11 @@ public:
     Mesh(Mesh&&) noexcept = default;
     Mesh& operator=(Mesh&&) noexcept = default;
 
-	static Mesh CreatePlane(float width, float depth, uint32_t m, uint32_t n);
+	static Mesh CreatePlane(float width, float depth, uint32_t m = 2, uint32_t n = 2);
 	static Mesh CreateCube(float size = 1);
-	static Mesh CreateSphere(float diameter, uint16_t sliceCount = 16, uint16_t stackCount = 16);
-    static Mesh CreateCylinder(float radius, float height, uint32_t slices = 16, bool withCaps = true);
-	static Mesh CreateCone(float radius, float height, uint32_t slices = 32, bool withBase = true);
+	static Mesh CreateSphere(float diameter = 1, uint16_t sliceCount = 16, uint16_t stackCount = 16);
+    static Mesh CreateCylinder(float radius = 1, float height = 1, uint32_t slices = 16, bool withCaps = true);
+	static Mesh CreateCone(    float radius = 1, float height = 1, uint32_t slices = 32, bool withBase = true);
 
     void SetPosition(float x, float y, float z);
     void AddPosition(float dx, float dy, float dz);
