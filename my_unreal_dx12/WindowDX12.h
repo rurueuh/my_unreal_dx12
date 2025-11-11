@@ -12,6 +12,7 @@
 #include <chrono>
 #include <wrl.h>
 #include "ImGuiDx12.h"
+#include <fstream>
 
 class WindowDX12 {
 public:
@@ -51,7 +52,32 @@ public:
             { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
         };
-        m_pipeline.Create(m_gfx.Device(), il, _countof(il), kVertexShaderSrc, kPixelShaderSrc,
+
+        char* vertexShaderSrc, *pixelShaderSrc;
+        {
+            std::ifstream vsFile("VertexShader.hlsl", std::ios::in | std::ios::binary);
+            std::ifstream psFile("PixelShader.hlsl", std::ios::in | std::ios::binary);
+            if (!vsFile.is_open() || !psFile.is_open()) {
+                throw std::runtime_error("Failed to open shader files.");
+            }
+            vsFile.seekg(0, std::ios::end);
+            size_t vsSize = vsFile.tellg();
+            vsFile.seekg(0, std::ios::beg);
+            vertexShaderSrc = new char[vsSize + 1];
+            vsFile.read(vertexShaderSrc, vsSize);
+            vertexShaderSrc[vsSize] = '\0';
+            vsFile.close();
+            psFile.seekg(0, std::ios::end);
+            size_t psSize = psFile.tellg();
+            psFile.seekg(0, std::ios::beg);
+            pixelShaderSrc = new char[psSize + 1];
+            psFile.read(pixelShaderSrc, psSize);
+            pixelShaderSrc[psSize] = '\0';
+            psFile.close();
+		}
+
+
+        m_pipeline.Create(m_gfx.Device(), il, _countof(il), vertexShaderSrc, pixelShaderSrc,
             DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_D32_FLOAT);
         m_renderer.SetPipeline(m_pipeline);
 

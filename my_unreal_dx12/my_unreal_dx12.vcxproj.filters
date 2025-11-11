@@ -16,6 +16,9 @@
     <Filter Include="Source Files\ImguiLib">
       <UniqueIdentifier>{dc5ed715-460a-45d5-8042-da612dc6ed61}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Shaders">
+      <UniqueIdentifier>{3a350273-a8ed-41de-948a-efd0072e956a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shaders.h">
@@ -201,5 +204,13 @@
     <Image Include="my_unreal_dx12.ico">
       <Filter>Resource Files</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="VertexShader.hlsl">
+      <Filter>Header Files\Shaders</Filter>
+    </None>
+    <None Include="PixelShader.hlsl">
+      <Filter>Header Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

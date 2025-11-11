@@ -64,9 +64,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 
 
 	std::vector<std::shared_ptr<Mesh>> weapons = {};
-	auto t = std::make_shared<Mesh>("mirage2000/scene.obj");
-	t->SetPosition(0.f, 0.f, 0.f);
-	weapons.push_back(t);
 	auto meshDraw = win.getImGui().addText("Mesh: 0");
 	win.getImGui().AddButton("Add Fighter Jet", [&weapons, &win, &meshDraw]() {
 		std::shared_ptr<Mesh> weapon = std::make_shared<Mesh>("jet/fighter_jet.obj");
@@ -81,7 +78,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 
 	win.getImGui().addSeparator();
 	float rotateFighter = 0.0f;
-	weapons[0]->SetRotationYawPitchRoll(3.0f, 0.0f, 0.0f);
 	win.getImGui().addSliderFloat("rotate fighter0", &rotateFighter, 0.0f, 360.0f, [&weapons, &floor, &geometricsMeshes](float val) {
 		if (weapons.size() > 0) {
 			weapons[0]->SetRotationYawPitchRoll(0.0f, val, 0.0f);
@@ -93,7 +89,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 
 	win.getImGui().addSeparator();
 
-	win.getImGui().addSliderFloat("translate fighter0 x", nullptr, -100.0f, 100.0f, [&weapons](float val) {
+	/*win.getImGui().addSliderFloat("translate fighter0 x", nullptr, -100.0f, 100.0f, [&weapons](float val) {
 		if (weapons.size() > 0) {
 			weapons[0]->SetPosition(0.0f, val, 0.0f);
 			
@@ -110,7 +106,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 			weapons[0]->SetPosition(val, 0.0f, 0.0f);
 			
 		}
-	});
+	});*/
 
 
 
@@ -121,7 +117,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     {
         auto v = win.Clear();
         for (auto& c : weapons) {
-            //win.Draw(*c);
+            win.Draw(*c);
         }
 		win.Draw(floor);
 		for (auto& g : geometricsMeshes) {
