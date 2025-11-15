@@ -3,7 +3,10 @@ cbuffer Scene : register(b0)
     float4x4 uModel;
     float4x4 uViewProj;
     float4x4 uNormalMatrix;
-}
+
+    float3 uCameraPos;
+    float uShininess;
+};
 
 struct VSIn
 {
@@ -18,6 +21,7 @@ struct VSOut
     float3 nrm : NORMAL0;
     float3 col : COLOR0;
     float2 uv : TEXCOORD0;
+    float3 worldPos : TEXCOORD1;
 };
 
 VSOut main(VSIn v)
@@ -31,5 +35,6 @@ VSOut main(VSIn v)
 
     o.col = v.col;
     o.uv = v.uv;
+    o.worldPos = wpos.xyz;
     return o;
 }

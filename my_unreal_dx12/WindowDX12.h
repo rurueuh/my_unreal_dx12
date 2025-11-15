@@ -177,6 +177,10 @@ public:
         const XMMATRIX P = m_camera.Proj();
         const XMMATRIX VP = V * P;
 
+		const XMFLOAT3 camPos = m_camera.getPosition();
+		const float shininess = mesh.getShininess();
+
+
         XMVECTOR det;
         const XMMATRIX MInv = XMMatrixInverse(&det, M);
         const XMMATRIX NMat = XMMatrixTranspose(MInv);
@@ -185,6 +189,8 @@ public:
         XMStoreFloat4x4(&cb.uModel, XMMatrixTranspose(M));
         XMStoreFloat4x4(&cb.uViewProj, XMMatrixTranspose(VP));
         XMStoreFloat4x4(&cb.uNormalMatrix, XMMatrixTranspose(NMat));
+		cb.uCameraPos = camPos;
+		cb.uShininess = shininess;
 
         const UINT frame = m_swap.FrameIndex();
         const UINT slice = frame * kMaxDrawsPerFrame + (m_drawCursor++);
@@ -210,6 +216,10 @@ public:
         m_camera.SetPerspective(fov, aspect, zn, zf);
         m_proj = m_camera.Proj();
     }
+
+    XMFLOAT3 GetCameraPosition() const {
+		return m_camera.getPosition();
+	}
 
     ID3D12Device* GetDevice() const { return m_gfx.Device(); }
     GraphicsDevice& GetGraphicsDevice() { return m_gfx; }
