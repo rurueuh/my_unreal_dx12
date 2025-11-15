@@ -7,12 +7,16 @@
 #include <memory>
 #include <cstring>
 
-struct SceneCB
+struct alignas(16) SceneCB
 {
     DirectX::XMFLOAT4X4 uModel;
     DirectX::XMFLOAT4X4 uViewProj;
     DirectX::XMFLOAT4X4 uNormalMatrix;
+
+	DirectX::XMFLOAT3 uCameraPos;
+	float uShininess;
 };
+
 static_assert(sizeof(SceneCB) % 16 == 0, "SceneCB must be 16-byte aligned");
 
 class ConstantBuffer

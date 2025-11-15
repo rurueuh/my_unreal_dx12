@@ -30,6 +30,7 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
     m_asset->vertices = vertices;
     m_asset->indices = indices;
     m_asset->texture = ResourceCache::I().defaultWhite();
+	this->setShininess(m_asset->shininess);
     m_asset->Upload(WindowDX12::Get().GetDevice());
     RecomputeRotationFromAbsoluteEuler();
 }

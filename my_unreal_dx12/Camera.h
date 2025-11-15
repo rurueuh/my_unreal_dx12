@@ -22,6 +22,17 @@ public:
 	DirectX::XMMATRIX View() const { return m_view; }
 	DirectX::XMMATRIX Proj() const { return m_proj; }
 
+	DirectX::XMFLOAT3 getPosition() const
+	{
+		using namespace DirectX;
+		XMVECTOR det;
+		XMMATRIX invView = XMMatrixInverse(&det, m_view);
+		XMVECTOR pos = invView.r[3];
+		XMFLOAT3 position;
+		XMStoreFloat3(&position, pos);
+		return position;
+	}
+
 
 private:
 	DirectX::XMMATRIX m_view = DirectX::XMMatrixIdentity();

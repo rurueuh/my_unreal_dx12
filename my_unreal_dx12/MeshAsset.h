@@ -12,6 +12,7 @@ class MeshAsset
 public:
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
+	float shininess = 128.f;
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> vb, ib;
 	D3D12_VERTEX_BUFFER_VIEW vbv{};

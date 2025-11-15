@@ -72,14 +72,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 	std::vector<std::shared_ptr<Mesh>> weapons = {};
 	auto meshDraw = win.getImGui().addText("Mesh: 0");
 	win.getImGui().AddButton("Add Fighter Jet", [&weapons, &win, &meshDraw]() {
-		std::shared_ptr<Mesh> weapon = std::make_shared<Mesh>("jet/fighter_jet.obj");
-		weapon->SetPosition(((rand() % 100) / 100.f - 0.5f) * 50.f,
-			((rand() % 100) / 100.f - 0.5f) * 50.f,
-			((rand() % 100) / 100.f - 0.5f) * 50.f
-		);
-		weapon->SetScale(0.1f, 0.1f, 0.1f);
-		weapons.push_back(std::move(weapon));
-		meshDraw->setText("Mesh: %u", weapons.size());
+		for (int lh = 1; lh--;) {
+			std::shared_ptr<Mesh> weapon = std::make_shared<Mesh>("mirage2000/scene.obj");
+			weapon->SetPosition(((rand() % 100) / 100.f - 0.5f) * 50.f,
+				((rand() % 100) / 100.f - 0.5f) * 50.f,
+				((rand() % 100) / 100.f - 0.5f) * 50.f
+			);
+			weapons.push_back(std::move(weapon));
+			meshDraw->setText("Mesh: %u", weapons.size());
+		}
 	});
 
 	win.getImGui().addSeparator();
@@ -96,6 +97,20 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 	win.getImGui().addSeparator();
 
 	auto triangleText = win.getImGui().addText("Triangles: 0");
+
+	std::chrono::steady_clock::time_point lastTime = std::chrono::steady_clock::now();
+	auto msFrame = win.getImGui().addText("Frame Time: 0 ms");
+
+	win.getImGui().addSeparator();
+	win.getImGui().addSliderFloat("Plane Specular", nullptr, 1.0f, 256.0f, [&weapons, &geometricsMeshes](float val) 
+		{
+			for (auto& w : weapons) {
+				w->setShininess(val);
+			}
+			for (auto& g : geometricsMeshes) {
+				g->setShininess(val);
+			}
+		});
 
 
     while (win.IsOpen())
@@ -115,6 +130,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 		} if (GetAsyncKeyState('F') & 0x8000) {
 			cubeMesh->AddRotationYawPitchRoll(-0.5f, 0.0f, 0.0f);
 		}
+
+		auto currentTime = std::chrono::steady_clock::now();
+		auto frameDuration = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastTime).count();
+		lastTime = currentTime;
+		msFrame->setText("Frame Time: %lld ms", frameDuration);
 		triangleText->setText("Triangles: %u", v);
         win.Display();
     }

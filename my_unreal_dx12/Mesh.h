@@ -80,6 +80,17 @@ public:
     const D3D12_INDEX_BUFFER_VIEW& IBV() const { return m_asset->ibv; }
     UINT IndexCount() const { return m_asset->indexCount; }
 
+	float getShininess() const { return shininess; }
+	void setShininess(float s) {
+        if (s < 16.f) {
+            std::cout << "[Warning]: shininess too low, Object may appear too dull." << std::endl;
+		}
+		else if (s > 256.f) {
+            std::cout << "[Warning]: shininess too high, Object may appear too shiny." << std::endl;
+		}
+        shininess = s;
+    }
+
 
 private:
     void UpdateMatrix();
@@ -94,6 +105,8 @@ private:
     float m_yawDeg = 0.f;
     float m_pitchDeg = 0.f;
     float m_rollDeg = 0.f;
+
+	float shininess = 128.f; // default value in MeshAsset is 128.0f
 
     void RecomputeRotationFromAbsoluteEuler();
 };

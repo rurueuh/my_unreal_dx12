@@ -11,6 +11,7 @@
 struct Material {
     DirectX::XMFLOAT3 Kd{ 1,1,1 };
     std::string map_Kd;
+	float Ns{ 128.f };
 };
 
 static std::string joinPath(const std::string& a, const std::string& b) {
@@ -40,6 +41,11 @@ static void parseMtlFile(const std::string& mtlPath, std::unordered_map<std::str
         else if (tok == "map_Kd" && !cur.empty()) {
             iss >> out[cur].map_Kd;
         }
+        else if (tok == "Ns" && !cur.empty()) {
+            iss >> out[cur].Ns;
+            if (out[cur].Ns < 16.0f)  out[cur].Ns = 16.0f;
+            if (out[cur].Ns > 256.0f) out[cur].Ns = 256.0f;
+		}
     }
 }
 
@@ -247,6 +253,11 @@ void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_p
             auto it = materials.find(name);
             currentMaterialName = name;
             currentMaterial = (it != materials.end()) ? &it->second : nullptr;
+
+            if (currentMaterial) {
+				out.shininess = currentMaterial->Ns;
+				std::cout << "Material " << name << " Ns = " << out.shininess << "\n";
+            }
 
             if (!out.texture)
             {
