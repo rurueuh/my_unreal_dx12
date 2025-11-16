@@ -26,10 +26,7 @@ struct VSOut
 VSOut main(VSIn v)
 {
     VSOut o;
-
     float4 w = mul(float4(v.pos, 1.0), uModel);
-
     o.pos = mul(w, uLightViewProj);
-
     return o;
 }

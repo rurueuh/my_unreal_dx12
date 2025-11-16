@@ -1,4 +1,4 @@
-float main() : SV_Depth
+float4 main() : SV_Target
 {
-    return 0.0f;
+    return float4(0.0, 0.0, 0.0, 0.0);
 }

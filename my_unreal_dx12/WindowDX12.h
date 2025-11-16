@@ -269,18 +269,17 @@ public:
 
         using namespace DirectX;
 
-        XMVECTOR sunDirRays = XMVector3Normalize(XMVectorSet(0.3f, -1.0f, 0.3f, 0.0f));
+        XMVECTOR lightDirRays = XMVector3Normalize(XMVectorSet(0.3f, -1.0f, 0.3f, 0.0f));
         XMVECTOR center = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-        XMVECTOR lightPos = XMVectorSubtract(center, XMVectorScale(sunDirRays, 80.0f));
+        XMVECTOR lightPos = XMVectorSubtract(center, XMVectorScale(lightDirRays, 80.0f));
 
-        XMMATRIX lightView = XMMatrixLookAtLH(
-            lightPos, center,
-            XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-        XMMATRIX lightProj = XMMatrixOrthographicLH(120.0f, 120.0f, 1.0f, 300.0f);
+        XMMATRIX lightView = XMMatrixLookAtLH(lightPos, center, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+        XMMATRIX lightProj = XMMatrixOrthographicLH(40.0f, 40.0f, 1.0f, 150.0f);
         XMStoreFloat4x4(&m_lightViewProj, XMMatrixTranspose(lightView * lightProj));
 
-        XMVECTOR toLight = XMVector3Normalize(XMVectorSubtract(lightPos, center));
-        XMStoreFloat3(&m_lightDir, toLight);
+        XMFLOAT3 lightDirShader;
+        XMStoreFloat3(&lightDirShader, XMVectorNegate(lightDirRays));
+        m_lightDir = lightDirShader;
 
         m_renderer.BeginFrame(m_swap.FrameIndex());
         m_imgui.NewFrame();
@@ -319,6 +318,7 @@ public:
         m_renderer.EndShadowPass(m_shadowMap);
         m_renderer.BindMainRenderTargets();
     }
+
 
     void Draw(const Mesh& mesh)
     {

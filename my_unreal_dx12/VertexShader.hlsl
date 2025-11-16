@@ -40,7 +40,9 @@ VSOut main(VSIn v)
 
     o.pos = mul(w, uViewProj);
 
-    o.nrm = normalize(mul(v.nrm, (float3x3) uNormalMatrix));
+    float3x3 nMat = (float3x3) uNormalMatrix;
+    o.nrm = normalize(mul(v.nrm, nMat));
+
     o.col = v.col;
     o.uv = v.uv;
 

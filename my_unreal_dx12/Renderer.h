@@ -63,8 +63,6 @@ public:
         cmd->ResourceBarrier(1, &b);
     }
 
-
-
     void BeginFrame(UINT frameIndex)
     {
         m_cmd.Begin(frameIndex);

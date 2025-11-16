@@ -50,13 +50,12 @@ float ComputeShadow(float4 shadowPos, float3 normal)
     float3 L = normalize(uLightDir);
     float NdotL = saturate(dot(N, L));
 
-    float baseBias = 0.0005f;
-    float slopeBias = 0.003f * (1.0f - NdotL);
+    float baseBias = 0.0007f;
+    float slopeBias = 0.01f * (1.0f - NdotL);
     float bias = baseBias + slopeBias;
 
     float2 texelSize = 1.0f / SHADOW_MAP_SIZE;
-    float visAcc = 0.0f;
-    const float minShadow = 0.3f;
+    float acc = 0.0f;
 
     [unroll]
     for (int y = -1; y <= 1; ++y)
@@ -69,19 +68,18 @@ float ComputeShadow(float4 shadowPos, float3 normal)
             if (uv.x < 0.0 || uv.x > 1.0 ||
                 uv.y < 0.0 || uv.y > 1.0)
             {
-                visAcc += 1.0f;
+                acc += 1.0f;
                 continue;
             }
 
             float sd = uShadowMap.Sample(uShadowSampler, uv).r;
-            bool inShadow = (depth > sd + bias);
-            float vis = inShadow ? minShadow : 1.0f;
 
-            visAcc += vis;
+            float lit = step(depth - bias, sd);
+            acc += lit;
         }
     }
 
-    return visAcc / 9.0f;
+    return acc / 9.0f;
 }
 
 float4 main(VSOut i) : SV_Target
@@ -102,6 +100,7 @@ float4 main(VSOut i) : SV_Target
     float3 specular = kLightColor * spec;
 
     float shadow = ComputeShadow(i.shadowPos, N);
+
     float3 lighting = kAmbient + shadow * (diffuse + specular);
 
     float3 albedo = uTexture.Sample(uSampler, i.uv).rgb * i.col;
