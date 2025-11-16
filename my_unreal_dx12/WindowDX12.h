@@ -270,11 +270,11 @@ public:
         using namespace DirectX;
 
         XMVECTOR lightDirRays = XMVector3Normalize(XMVectorSet(0.3f, -1.0f, 0.3f, 0.0f));
-        XMVECTOR center = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+        XMVECTOR center = XMVectorSet(m_camera.getPosition().x, m_camera.getPosition().y, m_camera.getPosition().z, 10);
         XMVECTOR lightPos = XMVectorSubtract(center, XMVectorScale(lightDirRays, 80.0f));
 
         XMMATRIX lightView = XMMatrixLookAtLH(lightPos, center, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-        XMMATRIX lightProj = XMMatrixOrthographicLH(40.0f, 40.0f, 1.0f, 150.0f);
+        XMMATRIX lightProj = XMMatrixOrthographicLH(60.f, 60.f, 1.0f, 150.0f);
         XMStoreFloat4x4(&m_lightViewProj, XMMatrixTranspose(lightView * lightProj));
 
         XMFLOAT3 lightDirShader;
