@@ -24,7 +24,7 @@ static const float3 kAmbient = float3(0.25, 0.25, 0.25);
 static const float SHADOW_MAP_SIZE = 4096.0f;
 
 static const int POISSON_MAX = 32;
-static const int POISSON_SAMPLES = 4;
+static const int POISSON_SAMPLES = 16;
 
 static float2 poissonDisk[POISSON_MAX] =
 {
