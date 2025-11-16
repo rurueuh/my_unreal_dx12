@@ -1,9 +1,10 @@
-#pragma once
+﻿#pragma once
 #include <wrl.h>
 #include <d3d12.h>
 #include <d3dcompiler.h>
 #include <string>
 #include <vector>
+#include <cstring>
 #include "Utils.h"
 
 using Microsoft::WRL::ComPtr;
@@ -16,14 +17,23 @@ public:
         const char* vsSource, const char* psSource,
         DXGI_FORMAT rtvFormat, DXGI_FORMAT dsvFormat)
     {
-        D3D12_DESCRIPTOR_RANGE range{};
-        range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-        range.NumDescriptors = 1;
-        range.BaseShaderRegister = 0; // t0
-        range.RegisterSpace = 0;
-        range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-        D3D12_ROOT_PARAMETER params[2]{};
+        D3D12_DESCRIPTOR_RANGE ranges[2]{};
+
+        ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+        ranges[0].NumDescriptors = 1;
+        ranges[0].BaseShaderRegister = 0; // t0
+        ranges[0].RegisterSpace = 0;
+        ranges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+        ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+        ranges[1].NumDescriptors = 1;
+        ranges[1].BaseShaderRegister = 1; // t1
+        ranges[1].RegisterSpace = 0;
+        ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+        D3D12_ROOT_PARAMETER params[3]{};
+
         params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
         params[0].Descriptor.ShaderRegister = 0; // b0
         params[0].Descriptor.RegisterSpace = 0;
@@ -31,47 +41,90 @@ public:
 
         params[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
         params[1].DescriptorTable.NumDescriptorRanges = 1;
-        params[1].DescriptorTable.pDescriptorRanges = &range;
+        params[1].DescriptorTable.pDescriptorRanges = &ranges[0];
         params[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-        D3D12_STATIC_SAMPLER_DESC samp{};
-        samp.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-        samp.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        samp.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        samp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        samp.MipLODBias = 0.0f;
-        samp.MaxAnisotropy = 1;
-        samp.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-        samp.MinLOD = 0.0f;
-        samp.MaxLOD = D3D12_FLOAT32_MAX;
-        samp.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-        samp.RegisterSpace = 0;
-        samp.ShaderRegister = 0; // s0
+        params[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+        params[2].DescriptorTable.NumDescriptorRanges = 1;
+        params[2].DescriptorTable.pDescriptorRanges = &ranges[1];
+        params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+        D3D12_STATIC_SAMPLER_DESC samplers[2]{};
+
+        samplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        samplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        samplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        samplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        samplers[0].MipLODBias = 0.0f;
+        samplers[0].MaxAnisotropy = 1;
+        samplers[0].ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+        samplers[0].MinLOD = 0.0f;
+        samplers[0].MaxLOD = D3D12_FLOAT32_MAX;
+        samplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        samplers[0].RegisterSpace = 0;
+        samplers[0].ShaderRegister = 0; // s0
+
+        samplers[1] = samplers[0];
+        samplers[1].ShaderRegister = 1; // s1
 
         D3D12_ROOT_SIGNATURE_DESC rsDesc{};
-        rsDesc.NumParameters = 2;
+        rsDesc.NumParameters = _countof(params);
         rsDesc.pParameters = params;
-        rsDesc.NumStaticSamplers = 1;
-        rsDesc.pStaticSamplers = &samp;
-        rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+        rsDesc.NumStaticSamplers = _countof(samplers);
+        rsDesc.pStaticSamplers = samplers;
+        rsDesc.Flags =
+            D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
             | D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS
             | D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS
             | D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
         ComPtr<ID3DBlob> sig, err;
-        DXThrow(D3D12SerializeRootSignature(&rsDesc, D3D_ROOT_SIGNATURE_VERSION_1, &sig, &err));
-        DXThrow(device->CreateRootSignature(0, sig->GetBufferPointer(), sig->GetBufferSize(), IID_PPV_ARGS(&m_root)));
+        HRESULT hr = D3D12SerializeRootSignature(
+            &rsDesc,
+            D3D_ROOT_SIGNATURE_VERSION_1,
+            &sig,
+            &err
+        );
+        if (FAILED(hr))
+        {
+            if (err) {
+                OutputDebugStringA((char*)err->GetBufferPointer());
+            }
+            DXThrow(hr);
+        }
+
+        DXThrow(device->CreateRootSignature(
+            0,
+            sig->GetBufferPointer(),
+            sig->GetBufferSize(),
+            IID_PPV_ARGS(&m_root)));
 
         ComPtr<ID3DBlob> compileErrs;
         UINT compileFlags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #if defined(_DEBUG)
         compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
-        DXThrow(D3DCompile(vsSource, strlen(vsSource), nullptr, nullptr, nullptr, "main", "vs_5_1", compileFlags, 0, m_vsBlob.GetAddressOf(), &compileErrs));
-        if (compileErrs) OutputDebugStringA((char*)compileErrs->GetBufferPointer());
+
+        D3DCompile(
+            vsSource, std::strlen(vsSource),
+            nullptr, nullptr, nullptr,
+            "main", "vs_5_1",
+            compileFlags, 0,
+            m_vsBlob.GetAddressOf(), &compileErrs);
+        if (compileErrs) {
+            OutputDebugStringA((char*)compileErrs->GetBufferPointer());
+        }
         compileErrs.Reset();
-        DXThrow(D3DCompile(psSource, strlen(psSource), nullptr, nullptr, nullptr, "main", "ps_5_1", compileFlags, 0, m_psBlob.GetAddressOf(), &compileErrs));
-        if (compileErrs) OutputDebugStringA((char*)compileErrs->GetBufferPointer());
+
+        DXThrow(D3DCompile(
+            psSource, std::strlen(psSource),
+            nullptr, nullptr, nullptr,
+            "main", "ps_5_1",
+            compileFlags, 0,
+            m_psBlob.GetAddressOf(), &compileErrs));
+        if (compileErrs) {
+            OutputDebugStringA((char*)compileErrs->GetBufferPointer());
+        }
 
         m_cachedInputElements.assign(inputLayout, inputLayout + inputCount);
         m_cachedInputLayout = { m_cachedInputElements.data(), inputCount };
@@ -119,13 +172,27 @@ private:
         pso.RasterizerState = rast;
         pso.BlendState = blend;
         pso.DepthStencilState = depth;
-        pso.NumRenderTargets = 1;
-        pso.RTVFormats[0] = m_cachedRTV;
         pso.DSVFormat = m_cachedDSV;
         pso.SampleDesc = { 1, 0 };
         pso.SampleMask = UINT_MAX;
+
+        if (m_cachedRTV != DXGI_FORMAT_UNKNOWN)
+        {
+            pso.NumRenderTargets = 1;
+            pso.RTVFormats[0] = m_cachedRTV;
+            for (UINT i = 1; i < _countof(pso.RTVFormats); ++i)
+                pso.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
+        }
+        else
+        {
+            pso.NumRenderTargets = 0;
+            for (UINT i = 0; i < _countof(pso.RTVFormats); ++i)
+                pso.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
+        }
+
         return pso;
     }
+
 
     D3D12_DEPTH_STENCIL_DESC CreateDepth()
     {
@@ -137,7 +204,7 @@ private:
         d.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
         d.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
         d.FrontFace = { D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP,
-                        D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
+                               D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
         d.BackFace = d.FrontFace;
         return d;
     }
@@ -179,19 +246,19 @@ private:
     }
 
 private:
-    ComPtr<ID3D12RootSignature> m_root;
+    ComPtr<ID3D12RootSignature>    m_root;
 
-    ComPtr<ID3D12PipelineState> m_psoSolid;
-    ComPtr<ID3D12PipelineState> m_psoWire;
-    ComPtr<ID3D12PipelineState> m_psoCurrent;
+    ComPtr<ID3D12PipelineState>    m_psoSolid;
+    ComPtr<ID3D12PipelineState>    m_psoWire;
+    ComPtr<ID3D12PipelineState>    m_psoCurrent;
 
-    ComPtr<ID3DBlob> m_vsBlob;
-    ComPtr<ID3DBlob> m_psBlob;
+    ComPtr<ID3DBlob>               m_vsBlob;
+    ComPtr<ID3DBlob>               m_psBlob;
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> m_cachedInputElements;
-    D3D12_INPUT_LAYOUT_DESC m_cachedInputLayout{};
-    DXGI_FORMAT m_cachedRTV = DXGI_FORMAT_UNKNOWN;
-    DXGI_FORMAT m_cachedDSV = DXGI_FORMAT_UNKNOWN;
+    D3D12_INPUT_LAYOUT_DESC        m_cachedInputLayout{};
+    DXGI_FORMAT                    m_cachedRTV = DXGI_FORMAT_UNKNOWN;
+    DXGI_FORMAT                    m_cachedDSV = DXGI_FORMAT_UNKNOWN;
 
     ID3D12Device* device = nullptr;
 };

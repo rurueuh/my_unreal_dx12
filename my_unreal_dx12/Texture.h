@@ -1,27 +1,31 @@
 ﻿#pragma once
 #include <wrl.h>
 #include <d3d12.h>
-#include <vector>
-#include <string>
-#include "Utils.h"
-#include <exception>
 #include "GraphicsDevice.h"
 
-
-using Microsoft::WRL::ComPtr;
-
-class GraphicsDevice;
-
-class Texture {
+class Texture
+{
 public:
-    void LoadFromFile(GraphicsDevice &gd, const char* path);
-    Texture InitWhite1x1(GraphicsDevice& gd);
+    Texture() = default;
 
-    ID3D12DescriptorHeap* SRVHeap() const { return m_srvHeap.Get(); }
-    D3D12_GPU_DESCRIPTOR_HANDLE GPUHandle() const { return m_srvHeap->GetGPUDescriptorHandleForHeapStart(); }
+    void LoadFromFile(GraphicsDevice& gd,
+        const char* path,
+        D3D12_CPU_DESCRIPTOR_HANDLE srvCpu,
+        D3D12_GPU_DESCRIPTOR_HANDLE srvGpu);
+
+    void InitWhite1x1(GraphicsDevice& gd,
+        D3D12_CPU_DESCRIPTOR_HANDLE srvCpu,
+        D3D12_GPU_DESCRIPTOR_HANDLE srvGpu);
+
+    ID3D12Resource* Resource() const { return m_tex.Get(); }
+
+    D3D12_GPU_DESCRIPTOR_HANDLE GPUHandle() const { return m_srvGPU; }
+    D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle() const { return m_srvCPU; }
 
 private:
-    ComPtr<ID3D12Resource> m_tex;
-    ComPtr<ID3D12Resource> m_upload;
-    ComPtr<ID3D12DescriptorHeap> m_srvHeap;
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_tex;
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_upload;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE m_srvCPU{};
+    D3D12_GPU_DESCRIPTOR_HANDLE m_srvGPU{};
 };

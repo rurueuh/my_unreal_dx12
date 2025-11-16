@@ -149,6 +149,7 @@
     <ClInclude Include="ResourceCache.h" />
     <ClInclude Include="ShaderPipeline.h" />
     <ClInclude Include="Shaders.h" />
+    <ClInclude Include="ShadowMap.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="SwapChain.h" />
     <ClInclude Include="Texture.h" />
@@ -178,6 +179,7 @@
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="ResourceCache.cpp" />
     <ClCompile Include="ShaderPipeline.cpp" />
+    <ClCompile Include="ShadowMap.cpp" />
     <ClCompile Include="SwapChain.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="Utils.cpp" />
@@ -196,6 +198,14 @@
       <FileType>Document</FileType>
     </None>
     <None Include="VertexShader.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ShadowPixel.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="ShadowVertex.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

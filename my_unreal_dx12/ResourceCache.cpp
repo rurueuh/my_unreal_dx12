@@ -7,11 +7,10 @@
 #include <DirectXMath.h>
 #include <iostream>
 
-
 struct Material {
     DirectX::XMFLOAT3 Kd{ 1,1,1 };
     std::string map_Kd;
-	float Ns{ 128.f };
+    float Ns{ 128.f };
 };
 
 static std::string joinPath(const std::string& a, const std::string& b) {
@@ -33,7 +32,8 @@ static void parseMtlFile(const std::string& mtlPath, std::unordered_map<std::str
         std::istringstream iss(line);
         if (!(iss >> tok)) continue;
         if (tok == "newmtl") {
-            iss >> cur; out[cur] = Material{};
+            iss >> cur;
+            out[cur] = Material{};
         }
         else if (tok == "Kd" && !cur.empty()) {
             iss >> out[cur].Kd.x >> out[cur].Kd.y >> out[cur].Kd.z;
@@ -43,9 +43,9 @@ static void parseMtlFile(const std::string& mtlPath, std::unordered_map<std::str
         }
         else if (tok == "Ns" && !cur.empty()) {
             iss >> out[cur].Ns;
-            if (out[cur].Ns < 16.0f)  out[cur].Ns = 16.0f;
-            if (out[cur].Ns > 256.0f) out[cur].Ns = 256.0f;
-		}
+            if (out[cur].Ns < 16.0f)   out[cur].Ns = 16.0f;
+            if (out[cur].Ns > 256.0f)  out[cur].Ns = 256.0f;
+        }
     }
 }
 
@@ -61,7 +61,10 @@ static void parseVtxToken(const std::string& tok, int& vi, int& ti, int& ni) {
         else if (part == 2) ni = val;
         acc.clear(); ++part;
         };
-    for (char c : tok) { if (c == '/') flush(); else acc.push_back(c); }
+    for (char c : tok) {
+        if (c == '/') flush();
+        else acc.push_back(c);
+    }
     flush();
 }
 
@@ -89,6 +92,7 @@ static uint32_t getIndexForKey(
     Vertex vert{};
     const auto& p = positions[(vi > 0 ? vi - 1 : 0)];
     vert.px = p.x; vert.py = p.y; vert.pz = p.z;
+
     if (ni > 0 && (size_t)(ni - 1) < normals.size()) {
         const auto& n = normals[ni - 1];
         vert.nx = n.x; vert.ny = n.y; vert.nz = n.z;
@@ -96,19 +100,20 @@ static uint32_t getIndexForKey(
     else {
         vert.nx = 0.0f; vert.ny = 1.0f; vert.nz = 0.0f;
     }
-    if (material)
-    {
+
+    if (material) {
         vert.r = material->Kd.x;
         vert.g = material->Kd.y;
         vert.b = material->Kd.z;
     }
-    else
-    {
+    else {
         vert.r = vert.g = vert.b = 1.0f;
     }
+
     if (ti > 0 && (size_t)(ti - 1) < texcoords.size()) {
         const auto& t = texcoords[ti - 1];
-        vert.u = t.x; vert.v = 1.0f - t.y;
+        vert.u = t.x;
+        vert.v = 1.0f - t.y;
     }
     else {
         vert.u = vert.v = 0.0f;
@@ -177,33 +182,38 @@ void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_p
     std::unordered_map<std::string, std::shared_ptr<Texture>> materialTextures;
 
     auto getMaterialTexture = [&](const std::string& name) -> std::shared_ptr<Texture>
-    {
-        auto it = materialTextures.find(name);
-        if (it != materialTextures.end())
-            return it->second;
+        {
+            auto it = materialTextures.find(name);
+            if (it != materialTextures.end())
+                return it->second;
 
-        auto matIt = materials.find(name);
-        if (matIt == materials.end() || matIt->second.map_Kd.empty())
-        {
-            materialTextures[name] = nullptr;
-            return nullptr;
-        }
+            auto matIt = materials.find(name);
+            if (matIt == materials.end() || matIt->second.map_Kd.empty()) {
+                materialTextures[name] = nullptr;
+                return nullptr;
+            }
 
-        const std::string texPath = joinPath(baseDir, matIt->second.map_Kd);
-        auto tex = std::make_shared<Texture>();
-        try
-        {
-            tex->LoadFromFile(WindowDX12::Get().GetGraphicsDevice(), texPath.c_str());
-            materialTextures[name] = tex;
-            return tex;
-        }
-        catch (...)
-        {
-            std::cerr << "Error texture: " << texPath << "\n";
-            materialTextures[name] = nullptr;
-            return nullptr;
-        }
-    };
+            const std::string texPath = joinPath(baseDir, matIt->second.map_Kd);
+
+            auto tex = std::make_shared<Texture>();
+            try
+            {
+                auto& win = WindowDX12::Get();
+                auto& gd = win.GetGraphicsDevice();
+                auto  alloc = win.AllocateSrv();
+
+                tex->LoadFromFile(gd, texPath.c_str(), alloc.cpu, alloc.gpu);
+
+                materialTextures[name] = tex;
+                return tex;
+            }
+            catch (...)
+            {
+                std::cerr << "Error texture: " << texPath << "\n";
+                materialTextures[name] = nullptr;
+                return nullptr;
+            }
+        };
 
     std::string line;
     while (std::getline(file, line)) {
@@ -235,9 +245,20 @@ void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_p
             std::vector<uint32_t> faceIdx;
             faceIdx.reserve(toks.size());
             for (auto& t : toks) {
-                uint32_t idx = getIndexForKey(t, currentMaterialName, currentMaterial, vertexMap, nextIndex, out.vertices, positions, texcoords, normals);
+                uint32_t idx = getIndexForKey(
+                    t,
+                    currentMaterialName,
+                    currentMaterial,
+                    vertexMap,
+                    nextIndex,
+                    out.vertices,
+                    positions,
+                    texcoords,
+                    normals
+                );
                 faceIdx.push_back(idx);
             }
+
             for (size_t i = 2; i < faceIdx.size(); ++i) {
                 out.indices.push_back(faceIdx[0]);
                 out.indices.push_back(faceIdx[i - 1]);
@@ -245,30 +266,28 @@ void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_p
             }
         }
         else if (type == "mtllib") {
-            std::string mtlfile; iss >> mtlfile;
+            std::string mtlfile;
+            iss >> mtlfile;
             parseMtlFile(joinPath(baseDir, mtlfile), materials);
         }
         else if (type == "usemtl") {
-            std::string name; iss >> name;
+            std::string name;
+            iss >> name;
             auto it = materials.find(name);
             currentMaterialName = name;
             currentMaterial = (it != materials.end()) ? &it->second : nullptr;
 
             if (currentMaterial) {
-				out.shininess = currentMaterial->Ns;
-				std::cout << "Material " << name << " Ns = " << out.shininess << "\n";
+                out.shininess = currentMaterial->Ns;
+                std::cout << "Material " << name << " Ns = " << out.shininess << "\n";
             }
 
             if (!out.texture)
             {
                 if (auto tex = getMaterialTexture(name))
-                {
                     out.texture = tex;
-                }
                 else
-                {
                     out.texture = defaultWhite;
-                }
             }
         }
     }
@@ -276,12 +295,11 @@ void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_p
     if (!out.texture)
         out.texture = defaultWhite;
 
-    bool hasNormals = !normals.empty();
+    const bool hasNormals = !normals.empty();
     if (!hasNormals) {
         RecomputeSmoothNormals(out.vertices, out.indices);
     }
 }
-
 
 std::shared_ptr<MeshAsset> ResourceCache::getMeshFromOBJ(const std::string& path) {
     std::shared_ptr<Texture> defaultWhiteCopy;
@@ -305,7 +323,8 @@ std::shared_ptr<MeshAsset> ResourceCache::getMeshFromOBJ(const std::string& path
         if (auto sp = it->second.lock())
             return sp;
         it->second = asset;
-    } else {
+    }
+    else {
         meshCache_.emplace(path, asset);
     }
     return asset;

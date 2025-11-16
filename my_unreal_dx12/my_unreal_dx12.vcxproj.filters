@@ -111,6 +111,9 @@
     <ClInclude Include="ResourceCache.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ShadowMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="my_unreal_dx12.cpp">
@@ -191,6 +194,9 @@
     <ClCompile Include="ResourceCache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ShadowMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="my_unreal_dx12.rc">
@@ -210,6 +216,12 @@
       <Filter>Header Files\Shaders</Filter>
     </None>
     <None Include="PixelShader.hlsl">
+      <Filter>Header Files\Shaders</Filter>
+    </None>
+    <None Include="ShadowPixel.hlsl">
+      <Filter>Header Files\Shaders</Filter>
+    </None>
+    <None Include="ShadowVertex.hlsl">
       <Filter>Header Files\Shaders</Filter>
     </None>
   </ItemGroup>

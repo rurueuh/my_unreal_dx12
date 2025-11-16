@@ -1,20 +1,19 @@
 #include "Renderer.h"
 #include "WindowDX12.h"
 
-void Renderer::DrawMesh(const Mesh& mesh, D3D12_GPU_VIRTUAL_ADDRESS cbAddr)
+void Renderer::DrawMesh(const Mesh& mesh,
+                        D3D12_GPU_VIRTUAL_ADDRESS cbAddr,
+                        D3D12_GPU_DESCRIPTOR_HANDLE texHandle,
+                        D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle)
 {
-    {
-        auto* tex = mesh.GetTexture();
-        if (tex == nullptr)
-            tex = &WindowDX12::Get().getDefaultTexture();
+    ID3D12GraphicsCommandList* cmd = m_cmd.Get();
 
-        ID3D12DescriptorHeap* heaps[] = { const_cast<ID3D12DescriptorHeap*>(tex->SRVHeap()) };
-        m_cmd.Get()->SetDescriptorHeaps(1, heaps);
-        m_cmd.Get()->SetGraphicsRootDescriptorTable(1, tex->GPUHandle());
-    }
-    m_cmd.Get()->SetGraphicsRootConstantBufferView(0, cbAddr);
-    m_cmd.Get()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    m_cmd.Get()->IASetVertexBuffers(0, 1, &mesh.VBV());
-    m_cmd.Get()->IASetIndexBuffer(&mesh.IBV());
-    m_cmd.Get()->DrawIndexedInstanced(mesh.IndexCount(), 1, 0, 0, 0);
+    cmd->SetGraphicsRootConstantBufferView(0, cbAddr);
+    cmd->SetGraphicsRootDescriptorTable(1, texHandle);
+    cmd->SetGraphicsRootDescriptorTable(2, shadowHandle);
+
+    cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    cmd->IASetVertexBuffers(0, 1, &mesh.VBV());
+    cmd->IASetIndexBuffer(&mesh.IBV());
+    cmd->DrawIndexedInstanced(mesh.IndexCount(), 1, 0, 0, 0);
 }

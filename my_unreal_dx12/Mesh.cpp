@@ -510,7 +510,5 @@ void Mesh::AddScale(float dsx, float dsy, float dsz) {
 void Mesh::BindTexture(ID3D12GraphicsCommandList* cmdList, UINT rootParamIndex) const {
     auto tx = m_asset->texture ? m_asset->texture : ResourceCache::I().defaultWhite();
     if (!tx) return;
-    ID3D12DescriptorHeap* heaps[] = { tx->SRVHeap() };
-    cmdList->SetDescriptorHeaps(1, heaps);
     cmdList->SetGraphicsRootDescriptorTable(rootParamIndex, tx->GPUHandle());
 }

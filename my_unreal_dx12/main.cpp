@@ -34,108 +34,126 @@
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 {
-	
     WindowDX12::ActivateConsole();
-	auto& win = WindowDX12::Get();
-	
-	win.setWindowTitle(L"My ruru");
-	win.setWindowSize(1920, 1080);
-	srand(static_cast<unsigned int>(time(nullptr)));
+    auto& win = WindowDX12::Get();
 
-	Mesh floor = Mesh::CreatePlane(100.0f, 100.0f, 2, 2);
-	floor.SetPosition(0.f, -5.f, 0.f);
-	floor.SetColor(0.3f, 0.0f, 0.1f);
+    win.setWindowTitle(L"My ruru");
+    win.setWindowSize(1920, 1080);
+    srand(static_cast<unsigned int>(time(nullptr)));
 
-	std::vector<std::shared_ptr<Mesh>> geometricsMeshes = {};
-	auto cubeMesh = std::make_shared<Mesh>(Mesh::CreateCube(2.0f));
-	cubeMesh->SetPosition(10.f, 0.f, 0.f);
-	geometricsMeshes.push_back(cubeMesh);
+    Mesh floor = Mesh::CreatePlane(100.0f, 100.0f, 2, 2);
+    floor.SetPosition(0.f, -5.f, 0.f);
+    floor.SetColor(0.3f, 0.0f, 0.1f);
 
-	auto cubeMesh2 = std::make_shared<Mesh>(Mesh::CreateCube(2.0f));
-	cubeMesh2->SetPosition(12.f, 0.f, 0.f);
-	geometricsMeshes.push_back(cubeMesh2);
+    std::vector<std::shared_ptr<Mesh>> geometricsMeshes;
 
+    auto cubeMesh = std::make_shared<Mesh>(Mesh::CreateCube(2.0f));
+    cubeMesh->SetPosition(10.f, 0.f, 0.f);
+    geometricsMeshes.push_back(cubeMesh);
 
-	auto sphereMesh = std::make_shared<Mesh>(Mesh::CreateSphere(1.0f, 16, 16));
-	sphereMesh->SetPosition(-10.f, 0.f, 0.f);
-	geometricsMeshes.push_back(sphereMesh);
+    auto cubeMesh2 = std::make_shared<Mesh>(Mesh::CreateCube(2.0f));
+    cubeMesh2->SetPosition(12.f, 0.f, 0.f);
+    geometricsMeshes.push_back(cubeMesh2);
 
-	auto cylinderMesh = std::make_shared<Mesh>(Mesh::CreateCylinder(1.0f, 2.0f, 16));
-	cylinderMesh->SetPosition(0.f, 0.f, 10.f);
-	geometricsMeshes.push_back(cylinderMesh);
+    auto sphereMesh = std::make_shared<Mesh>(Mesh::CreateSphere(1.0f, 16, 16));
+    sphereMesh->SetPosition(-10.f, 0.f, 0.f);
+    geometricsMeshes.push_back(sphereMesh);
 
-	auto coneMesh = std::make_shared<Mesh>(Mesh::CreateCone(1.0f, 2.0f, 1600, true));
-	coneMesh->SetPosition(0.f, 0.f, -10.f);
-	geometricsMeshes.push_back(coneMesh);
+    auto cylinderMesh = std::make_shared<Mesh>(Mesh::CreateCylinder(1.0f, 2.0f, 16));
+    cylinderMesh->SetPosition(0.f, 0.f, 10.f);
+    geometricsMeshes.push_back(cylinderMesh);
 
+    auto coneMesh = std::make_shared<Mesh>(Mesh::CreateCone(1.0f, 2.0f, 1600, true));
+    coneMesh->SetPosition(0.f, 0.f, -10.f);
+    geometricsMeshes.push_back(coneMesh);
 
-	std::vector<std::shared_ptr<Mesh>> weapons = {};
-	auto meshDraw = win.getImGui().addText("Mesh: 0");
-	win.getImGui().AddButton("Add Fighter Jet", [&weapons, &win, &meshDraw]() {
-		for (int lh = 1; lh--;) {
-			std::shared_ptr<Mesh> weapon = std::make_shared<Mesh>("mirage2000/scene.obj");
-			weapon->SetPosition(((rand() % 100) / 100.f - 0.5f) * 50.f,
-				((rand() % 100) / 100.f - 0.5f) * 50.f,
-				((rand() % 100) / 100.f - 0.5f) * 50.f
-			);
-			weapons.push_back(std::move(weapon));
-			meshDraw->setText("Mesh: %u", weapons.size());
-		}
-	});
+    std::vector<std::shared_ptr<Mesh>> weapons;
 
-	win.getImGui().addSeparator();
-	float rotateFighter = 0.0f;
-	win.getImGui().addSliderFloat("rotate fighter0", &rotateFighter, 0.0f, 360.0f, [&weapons, &floor, &geometricsMeshes](float val) {
-		if (weapons.size() > 0) {
-			weapons[0]->SetRotationYawPitchRoll(0.0f, val, 0.0f);
-			for (auto &g : geometricsMeshes) {
-				g->SetRotationYawPitchRoll(0.0f, val, 0.0f);
-			}
-		}
-	});
+    auto meshDraw = win.getImGui().addText("Mesh: 0");
+    win.getImGui().AddButton("Add Fighter Jet", [&weapons, &win, meshDraw]() {
+        for (int lh = 100; lh--;) {
+            std::shared_ptr<Mesh> weapon = std::make_shared<Mesh>("mirage2000/scene.obj");
+            weapon->SetPosition(
+                ((rand() % 100) / 100.f - 0.5f) * 50.f,
+                ((rand() % 100) / 100.f - 0.5f) * 50.f,
+                ((rand() % 100) / 100.f - 0.5f) * 50.f
+            );
+            weapons.push_back(std::move(weapon));
+            meshDraw->setText("Mesh: %u", (unsigned)weapons.size());
+        }
+        });
 
-	win.getImGui().addSeparator();
+    win.getImGui().addSeparator();
 
-	auto triangleText = win.getImGui().addText("Triangles: 0");
+    float rotateFighter = 0.0f;
+    win.getImGui().addSliderFloat(
+        "rotate fighter0", &rotateFighter, 0.0f, 360.0f,
+        [&weapons, &geometricsMeshes](float val)
+        {
+            if (!weapons.empty()) {
+                weapons[0]->SetRotationYawPitchRoll(0.0f, val, 0.0f);
+                for (auto& g : geometricsMeshes) {
+                    g->SetRotationYawPitchRoll(0.0f, val, 0.0f);
+                }
+            }
+        }
+    );
 
-	std::chrono::steady_clock::time_point lastTime = std::chrono::steady_clock::now();
-	auto msFrame = win.getImGui().addText("Frame Time: 0 ms");
+    win.getImGui().addSeparator();
 
-	win.getImGui().addSeparator();
-	win.getImGui().addSliderFloat("Plane Specular", nullptr, 1.0f, 256.0f, [&weapons, &geometricsMeshes](float val) 
-		{
-			for (auto& w : weapons) {
-				w->setShininess(val);
-			}
-			for (auto& g : geometricsMeshes) {
-				g->setShininess(val);
-			}
-		});
+    auto triangleText = win.getImGui().addText("Triangles: 0");
 
+    std::chrono::steady_clock::time_point lastTime = std::chrono::steady_clock::now();
+    auto msFrame = win.getImGui().addText("Frame Time: 0 ms");
+
+    win.getImGui().addSeparator();
+    win.getImGui().addSliderFloat(
+        "Plane Specular",
+        nullptr,
+        1.0f, 256.0f,
+        [&weapons, &geometricsMeshes](float val)
+        {
+            for (auto& w : weapons) {
+                w->setShininess(val);
+            }
+            for (auto& g : geometricsMeshes) {
+                g->setShininess(val);
+            }
+        }
+    );
+
+    std::vector<Mesh*> shadowMeshes;
 
     while (win.IsOpen())
     {
-        auto v = win.Clear();
-        for (auto& c : weapons) {
-            win.Draw(*c);
-        }
-		win.Draw(floor);
-		for (auto& g : geometricsMeshes) {
-			win.Draw(*g);
-		}
-		if (GetAsyncKeyState('R') & 0x8000) {
-			cubeMesh->AddRotationYawPitchRoll(0.0f, -0.5f, 0.0f);
-		} if (GetAsyncKeyState('T') & 0x8000) {
-			cubeMesh->AddRotationYawPitchRoll(0.0f, 0.0f, -0.5f);
-		} if (GetAsyncKeyState('F') & 0x8000) {
-			cubeMesh->AddRotationYawPitchRoll(-0.5f, 0.0f, 0.0f);
-		}
+        uint32_t trianglesLastFrame = win.Clear();
 
-		auto currentTime = std::chrono::steady_clock::now();
-		auto frameDuration = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastTime).count();
-		lastTime = currentTime;
-		msFrame->setText("Frame Time: %lld ms", frameDuration);
-		triangleText->setText("Triangles: %u", v);
+        shadowMeshes.clear();
+        shadowMeshes.push_back(&floor);
+        for (auto& m : geometricsMeshes)
+            shadowMeshes.push_back(m.get());
+        for (auto& w : weapons)
+            shadowMeshes.push_back(w.get());
+
+        win.RenderShadowPass(shadowMeshes);
+
+        for (auto& w : weapons)
+            win.Draw(*w);
+
+        win.Draw(floor);
+
+        for (auto& g : geometricsMeshes)
+            win.Draw(*g);
+
+        auto currentTime = std::chrono::steady_clock::now();
+        auto frameDuration = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastTime).count();
+        lastTime = currentTime;
+
+        msFrame->setText("Frame Time: %lld ms", frameDuration);
+        triangleText->setText("Triangles: %u", trianglesLastFrame);
+
         win.Display();
     }
+
+    return 0;
 }
