@@ -323,44 +323,73 @@ void WindowDX12::ActivateConsole()
 }
 
 void WindowDX12::DrawScene() {
-    for (auto& meshPtr : m_DrawList) {
-        using namespace DirectX;
+    using namespace DirectX;
 
+    for (auto& meshPtr : m_DrawList) {
         XMMATRIX M = meshPtr->Transform();
         XMMATRIX V = m_camera.View();
         XMMATRIX P = m_camera.Proj();
         XMMATRIX VP = V * P;
 
         XMFLOAT3 camPos = m_camera.getPosition();
-        float    shininess = meshPtr->getShininess();
 
         XMVECTOR det;
         XMMATRIX MInv = XMMatrixInverse(&det, M);
         XMMATRIX NMat = XMMatrixTranspose(MInv);
 
-        SceneCB cb{};
-        XMStoreFloat4x4(&cb.uModel, XMMatrixTranspose(M));
-        XMStoreFloat4x4(&cb.uViewProj, XMMatrixTranspose(VP));
-        XMStoreFloat4x4(&cb.uNormalMatrix, XMMatrixTranspose(NMat));
-        cb.uCameraPos = camPos;
-        cb.uShininess = shininess;
-        cb.uLightViewProj = m_lightViewProj;
-        cb.uLightDir = m_lightDir;
-        cb._pad0 = 0.0f;
+        SceneCB base{};
+        XMStoreFloat4x4(&base.uModel, XMMatrixTranspose(M));
+        XMStoreFloat4x4(&base.uViewProj, XMMatrixTranspose(VP));
+        XMStoreFloat4x4(&base.uNormalMatrix, XMMatrixTranspose(NMat));
+        base.uCameraPos = camPos;
+        base.uLightViewProj = m_lightViewProj;
+        base.uLightDir = m_lightDir;
+        base._pad0 = 0.0f;
 
         const UINT frame = m_swap.FrameIndex();
-        const UINT slice = frame * kMaxDrawsPerFrame + (m_drawCursor++);
 
-        D3D12_GPU_VIRTUAL_ADDRESS addr = m_cb.UploadSlice(slice, cb);
+        const MeshAsset* asset = meshPtr->GetAsset();
 
-        auto* tex = meshPtr->GetTexture();
-        if (!tex)
-            tex = &getDefaultTexture();
+        if (asset && !asset->submeshes.empty()) {
+            for (const auto& sm : asset->submeshes) {
+                SceneCB cb = base;
+                cb.uShininess = sm.shininess;
 
-        D3D12_GPU_DESCRIPTOR_HANDLE texHandle = tex->GPUHandle();
-        D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle = m_shadowMap.SRVGPU();
+                const UINT slice = frame * kMaxDrawsPerFrame + (m_drawCursor++);
+                D3D12_GPU_VIRTUAL_ADDRESS addr = m_cb.UploadSlice(slice, cb);
 
-        m_renderer.DrawMesh(*meshPtr, addr, texHandle, shadowHandle);
-        m_trianglesCount += meshPtr->IndexCount() / 3;
+                Texture* tex = nullptr;
+                if (sm.texture)
+                    tex = sm.texture.get();
+                else
+                    tex = meshPtr->GetTexture();
+                if (!tex)
+                    tex = &getDefaultTexture();
+
+                D3D12_GPU_DESCRIPTOR_HANDLE texHandle = tex->GPUHandle();
+                D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle = m_shadowMap.SRVGPU();
+
+                m_renderer.DrawMeshRange(*meshPtr, addr, texHandle, shadowHandle,
+                    sm.indexStart, sm.indexCount);
+                m_trianglesCount += sm.indexCount / 3;
+            }
+        }
+        else {
+            SceneCB cb = base;
+            cb.uShininess = meshPtr->getShininess();
+
+            const UINT slice = frame * kMaxDrawsPerFrame + (m_drawCursor++);
+            D3D12_GPU_VIRTUAL_ADDRESS addr = m_cb.UploadSlice(slice, cb);
+
+            auto* tex = meshPtr->GetTexture();
+            if (!tex)
+                tex = &getDefaultTexture();
+
+            D3D12_GPU_DESCRIPTOR_HANDLE texHandle = tex->GPUHandle();
+            D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle = m_shadowMap.SRVGPU();
+
+            m_renderer.DrawMesh(*meshPtr, addr, texHandle, shadowHandle);
+            m_trianglesCount += meshPtr->IndexCount() / 3;
+        }
     }
 }

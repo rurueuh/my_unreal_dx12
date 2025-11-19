@@ -94,6 +94,13 @@ public:
         D3D12_GPU_DESCRIPTOR_HANDLE texHandle,
         D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle);
 
+    void DrawMeshRange(const Mesh& mesh,
+        D3D12_GPU_VIRTUAL_ADDRESS cbAddr,
+        D3D12_GPU_DESCRIPTOR_HANDLE texHandle,
+        D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle,
+        UINT indexStart,
+        UINT indexCount);
+
     void DrawMeshShadow(const Mesh& mesh, D3D12_GPU_VIRTUAL_ADDRESS cbAddr)
     {
         ID3D12GraphicsCommandList* cmd = m_cmd.Get();

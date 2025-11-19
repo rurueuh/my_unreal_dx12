@@ -158,7 +158,7 @@ static void RecomputeSmoothNormals(std::vector<Vertex>& verts,
     }
 }
 
-void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_ptr<Texture> defaultWhite)
+static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_ptr<Texture> defaultWhite)
 {
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -215,6 +215,26 @@ void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_p
             }
         };
 
+    auto beginSubmesh = [&](const std::string& name, const Material* mat)
+        {
+            Submesh sm;
+            sm.indexStart = static_cast<uint32_t>(out.indices.size());
+            if (mat) {
+                sm.kd = mat->Kd;
+                sm.shininess = mat->Ns;
+                if (auto tex = getMaterialTexture(name))
+                    sm.texture = tex;
+                else
+                    sm.texture = defaultWhite;
+            }
+            else {
+                sm.kd = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
+                sm.shininess = 128.f;
+                sm.texture = defaultWhite;
+            }
+            out.submeshes.push_back(sm);
+        };
+
     std::string line;
     while (std::getline(file, line)) {
         std::istringstream iss(line);
@@ -241,6 +261,9 @@ void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_p
             std::string tok;
             while (iss >> tok) toks.push_back(tok);
             if (toks.size() < 3) continue;
+
+            if (out.submeshes.empty())
+                beginSubmesh(currentMaterialName, currentMaterial);
 
             std::vector<uint32_t> faceIdx;
             faceIdx.reserve(toks.size());
@@ -282,14 +305,25 @@ void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_p
                 std::cout << "Material " << name << " Ns = " << out.shininess << "\n";
             }
 
-            if (!out.texture)
-            {
+            if (!out.submeshes.empty()) {
+                auto& last = out.submeshes.back();
+                last.indexCount = static_cast<uint32_t>(out.indices.size() - last.indexStart);
+            }
+
+            beginSubmesh(currentMaterialName, currentMaterial);
+
+            if (!out.texture) {
                 if (auto tex = getMaterialTexture(name))
                     out.texture = tex;
                 else
                     out.texture = defaultWhite;
             }
         }
+    }
+
+    if (!out.submeshes.empty()) {
+        auto& last = out.submeshes.back();
+        last.indexCount = static_cast<uint32_t>(out.indices.size() - last.indexStart);
     }
 
     if (!out.texture)

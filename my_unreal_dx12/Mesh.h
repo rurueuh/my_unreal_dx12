@@ -6,13 +6,6 @@
 #include "Utils.h"
 #include <cmath>
 
-struct Vertex {
-    float px, py, pz;
-    float nx, ny, nz;
-    float r, g, b;
-    float u, v;
-};
-
 constexpr auto M_PI = 3.14159265358979323846f;
 
 class Mesh {
@@ -57,6 +50,8 @@ public:
 	void AddScaleX(float dsx);
 	void AddScaleY(float dsy);
 	void AddScaleZ(float dsz);
+
+    const MeshAsset* GetAsset() const { return m_asset.get(); }
 
     const DirectX::XMMATRIX& Transform() const { return m_transform; }
 
