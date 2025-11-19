@@ -25,6 +25,8 @@ struct VSIn
     float3 nrm : NORMAL0;
     float3 col : COLOR0;
     float2 uv : TEXCOORD0;
+    float3 tangent : TANGENT0;
+    float3 bitangent : BINORMAL0;
 };
 
 struct VSOut
@@ -35,6 +37,8 @@ struct VSOut
     float3 col : COLOR1;
     float2 uv : TEXCOORD2;
     float4 shadowPos : TEXCOORD3;
+    float3 tangent : TEXCOORD4;
+    float3 bitangent : TEXCOORD5;
 };
 
 VSOut main(VSIn v)
@@ -43,11 +47,12 @@ VSOut main(VSIn v)
 
     float4 w = mul(float4(v.pos, 1.0), uModel);
     o.worldPos = w.xyz;
-
     o.pos = mul(w, uViewProj);
 
     float3x3 nMat = (float3x3) uNormalMatrix;
     o.nrm = normalize(mul(v.nrm, nMat));
+    o.tangent = normalize(mul(v.tangent, nMat));
+    o.bitangent = normalize(mul(v.bitangent, nMat));
 
     o.col = v.col;
     o.uv = v.uv;

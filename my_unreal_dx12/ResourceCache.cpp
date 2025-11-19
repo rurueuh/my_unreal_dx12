@@ -64,6 +64,10 @@ static void parseMtlFile(const std::string& mtlPath, std::unordered_map<std::str
         else if (tok == "map_Kd" && !cur.empty()) {
             iss >> out[cur].map_Kd;
         }
+        else if ((tok == "map_Bump" || tok == "bump" || tok == "map_normal") && !cur.empty())
+        {
+            iss >> out[cur].map_normal;
+        }
     }
 }
 
@@ -176,6 +180,76 @@ static void RecomputeSmoothNormals(std::vector<Vertex>& verts,
     }
 }
 
+static void ComputeTangents(std::vector<Vertex>& verts, const std::vector<uint32_t>& idx)
+{
+    for (auto& v : verts) {
+        v.tx = v.ty = v.tz = 0;
+        v.bx = v.by = v.bz = 0;
+    }
+
+    for (size_t i = 0; i < idx.size(); i += 3) {
+        Vertex& v0 = verts[idx[i]];
+        Vertex& v1 = verts[idx[i + 1]];
+        Vertex& v2 = verts[idx[i + 2]];
+
+        DirectX::XMFLOAT3 p0{ v0.px, v0.py, v0.pz };
+        DirectX::XMFLOAT3 p1{ v1.px, v1.py, v1.pz };
+        DirectX::XMFLOAT3 p2{ v2.px, v2.py, v2.pz };
+
+        DirectX::XMFLOAT2 uv0{ v0.u, v0.v };
+        DirectX::XMFLOAT2 uv1{ v1.u, v1.v };
+        DirectX::XMFLOAT2 uv2{ v2.u, v2.v };
+
+        XMVECTOR P0 = XMLoadFloat3(&p0);
+        XMVECTOR P1 = XMLoadFloat3(&p1);
+        XMVECTOR P2 = XMLoadFloat3(&p2);
+
+        XMVECTOR uv0v = XMLoadFloat2(&uv0);
+        XMVECTOR uv1v = XMLoadFloat2(&uv1);
+        XMVECTOR uv2v = XMLoadFloat2(&uv2);
+
+        float x1 = p1.x - p0.x;
+        float x2 = p2.x - p0.x;
+        float y1 = p1.y - p0.y;
+        float y2 = p2.y - p0.y;
+        float z1 = p1.z - p0.z;
+        float z2 = p2.z - p0.z;
+
+        float s1 = uv1.x - uv0.x;
+        float s2 = uv2.x - uv0.x;
+        float t1 = uv1.y - uv0.y;
+        float t2 = uv2.y - uv0.y;
+
+        float r = 1.0f / (s1 * t2 - s2 * t1);
+
+        XMFLOAT3 T{
+            (t2 * x1 - t1 * x2) * r,
+            (t2 * y1 - t1 * y2) * r,
+            (t2 * z1 - t1 * z2) * r
+        };
+
+        XMFLOAT3 B{
+            (s1 * x2 - s2 * x1) * r,
+            (s1 * y2 - s2 * y1) * r,
+            (s1 * z2 - s2 * z1) * r
+        };
+
+        for (Vertex* v : { &v0, &v1, &v2 }) {
+            v->tx += T.x; v->ty += T.y; v->tz += T.z;
+            v->bx += B.x; v->by += B.y; v->bz += B.z;
+        }
+    }
+
+    for (auto& v : verts) {
+        XMVECTOR n = XMVector3Normalize(XMLoadFloat3((XMFLOAT3*)&v.nx));
+        XMVECTOR t = XMVector3Normalize(XMLoadFloat3((XMFLOAT3*)&v.tx));
+        XMVECTOR b = XMVector3Normalize(XMLoadFloat3((XMFLOAT3*)&v.bx));
+
+        XMStoreFloat3((XMFLOAT3*)&v.tx, t);
+        XMStoreFloat3((XMFLOAT3*)&v.bx, b);
+    }
+}
+
 static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::shared_ptr<Texture> defaultWhite)
 {
     std::ifstream file(filename);
@@ -198,6 +272,7 @@ static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::s
     std::string currentMaterialName;
     const Material* currentMaterial = nullptr;
     std::unordered_map<std::string, std::shared_ptr<Texture>> materialTextures;
+    std::unordered_map<std::string, std::shared_ptr<Texture>> materialNormalTextures;
 
     auto getMaterialTexture = [&](const std::string& name) -> std::shared_ptr<Texture>
         {
@@ -232,6 +307,39 @@ static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::s
                 return nullptr;
             }
         };
+    auto getMaterialNormal = [&](const std::string& name) -> std::shared_ptr<Texture>
+        {
+            auto it = materialNormalTextures.find(name);
+            if (it != materialNormalTextures.end())
+                return it->second;
+
+            auto matIt = materials.find(name);
+            if (matIt == materials.end() || matIt->second.map_normal.empty()) {
+                materialNormalTextures[name] = nullptr;
+                return nullptr;
+            }
+
+            const std::string texPath = joinPath(baseDir, matIt->second.map_normal);
+
+            auto tex = std::make_shared<Texture>();
+            try
+            {
+                auto& win = WindowDX12::Get();
+                auto& gd = win.GetGraphicsDevice();
+                auto  alloc = win.AllocateSrv();
+
+                tex->LoadFromFile(gd, texPath.c_str(), alloc.cpu, alloc.gpu);
+
+                materialNormalTextures[name] = tex;
+                return tex;
+            }
+            catch (...)
+            {
+                std::cerr << "Error normal map: " << texPath << "\n";
+                materialNormalTextures[name] = nullptr;
+                return nullptr;
+            }
+        };
 
     auto beginSubmesh = [&](const std::string& name, const Material* mat)
         {
@@ -239,10 +347,7 @@ static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::s
             sm.indexStart = static_cast<uint32_t>(out.indices.size());
             if (mat) {
                 sm.kd = mat->Kd;
-                sm.ks = mat->Ks;
-                sm.ke = mat->Ke;
                 sm.shininess = mat->Ns;
-                sm.opacity = mat->d;
                 if (auto tex = getMaterialTexture(name))
                     sm.texture = tex;
                 else
@@ -250,14 +355,20 @@ static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::s
             }
             else {
                 sm.kd = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
-                sm.ks = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
-                sm.ke = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
                 sm.shininess = 128.f;
-                sm.opacity = 1.f;
                 sm.texture = defaultWhite;
             }
+
+            if (mat && !mat->map_normal.empty()) {
+                if (auto n = getMaterialNormal(name)) {
+                    sm.normalMap = n;
+                    sm.hasNormalMap = true;
+                }
+            }
+
             out.submeshes.push_back(sm);
         };
+
 
     std::string line;
     while (std::getline(file, line)) {
@@ -320,6 +431,7 @@ static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::s
         else if (type == "usemtl") {
             std::string name;
             iss >> name;
+
             auto it = materials.find(name);
             currentMaterialName = name;
             currentMaterial = (it != materials.end()) ? &it->second : nullptr;
@@ -329,14 +441,8 @@ static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::s
                 std::cout << "Material " << name << " Ns = " << out.shininess << "\n";
             }
 
-            if (!out.submeshes.empty()) {
-                auto& last = out.submeshes.back();
-                last.indexCount = static_cast<uint32_t>(out.indices.size() - last.indexStart);
-            }
-
-            beginSubmesh(currentMaterialName, currentMaterial);
-
-            if (!out.texture) {
+            if (!out.texture)
+            {
                 if (auto tex = getMaterialTexture(name))
                     out.texture = tex;
                 else
@@ -355,8 +461,13 @@ static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::s
 
     const bool hasNormals = !normals.empty();
     if (!hasNormals) {
+		std::cout << "Recomputing smooth normals for " << filename << "\n";
         RecomputeSmoothNormals(out.vertices, out.indices);
     }
+
+
+    ComputeTangents(out.vertices, out.indices);
+
 }
 
 std::shared_ptr<MeshAsset> ResourceCache::getMeshFromOBJ(const std::string& path) {

@@ -147,14 +147,18 @@ WindowDX12::WindowDX12(UINT w, UINT h, const std::wstring& title)
 void WindowDX12::CreateShader(void)
 {
     D3D12_INPUT_ELEMENT_DESC il[] = {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0,
-            D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12,
-            D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24,
-            D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 36,
-            D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0,
+      D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12,
+      D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24,
+      D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 36,
+      D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 44,
+      D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 56,
+      D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
     };
     char* vertexShaderSrc = nullptr;
     char* pixelShaderSrc = nullptr;
@@ -399,11 +403,20 @@ void WindowDX12::DrawScene() {
                 Texture* tex = sm.texture ? sm.texture.get() : meshPtr->GetTexture();
                 if (!tex) tex = &getDefaultTexture();
 
+                Texture* normalTex = nullptr;
+                if (sm.hasNormalMap && sm.normalMap)
+                    normalTex = sm.normalMap.get();
+                if (!normalTex)
+                    normalTex = &getDefaultTexture();
+
                 D3D12_GPU_DESCRIPTOR_HANDLE texHandle = tex->GPUHandle();
                 D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle = m_shadowMap.SRVGPU();
+                D3D12_GPU_DESCRIPTOR_HANDLE normalHandle = normalTex->GPUHandle();
 
-                m_renderer.DrawMeshRange(*meshPtr, addr, texHandle, shadowHandle,
+                m_renderer.DrawMeshRange(*meshPtr, addr,
+                    texHandle, shadowHandle, normalHandle,
                     sm.indexStart, sm.indexCount);
+
                 m_trianglesCount += sm.indexCount / 3;
             }
         }
@@ -414,13 +427,18 @@ void WindowDX12::DrawScene() {
             const UINT slice = frame * kMaxDrawsPerFrame + (m_drawCursor++);
             D3D12_GPU_VIRTUAL_ADDRESS addr = m_cb.UploadSlice(slice, cb);
 
-            auto* tex = meshPtr->GetTexture();
+            Texture* tex = meshPtr->GetTexture();
             if (!tex) tex = &getDefaultTexture();
+
+            Texture* normalTex = &getDefaultTexture();
 
             D3D12_GPU_DESCRIPTOR_HANDLE texHandle = tex->GPUHandle();
             D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle = m_shadowMap.SRVGPU();
+            D3D12_GPU_DESCRIPTOR_HANDLE normalHandle = normalTex->GPUHandle();
 
-            m_renderer.DrawMesh(*meshPtr, addr, texHandle, shadowHandle);
+            m_renderer.DrawMesh(*meshPtr, addr,
+                texHandle, shadowHandle, normalHandle);
+
             m_trianglesCount += meshPtr->IndexCount() / 3;
         }
     }
@@ -453,11 +471,13 @@ void WindowDX12::DrawScene() {
             cb.uCameraPos = camPos;
             cb.uLightViewProj = m_lightViewProj;
             cb.uLightDir = m_lightDir;
+            cb._pad0 = 0.0f;
 
             cb.uShininess = sm->shininess;
             cb.uKs = sm->ks;
             cb.uOpacity = sm->opacity;
             cb.uKe = sm->ke;
+            cb._pad1 = 0.0f;
 
             const UINT slice = frame * kMaxDrawsPerFrame + (m_drawCursor++);
             D3D12_GPU_VIRTUAL_ADDRESS addr = m_cb.UploadSlice(slice, cb);
@@ -465,13 +485,21 @@ void WindowDX12::DrawScene() {
             Texture* tex = sm->texture ? sm->texture.get() : meshPtr->GetTexture();
             if (!tex) tex = &getDefaultTexture();
 
+            Texture* normalTex = nullptr;
+            if (sm->hasNormalMap && sm->normalMap)
+                normalTex = sm->normalMap.get();
+            if (!normalTex)
+                normalTex = &getDefaultTexture();
+
             D3D12_GPU_DESCRIPTOR_HANDLE texHandle = tex->GPUHandle();
             D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle = m_shadowMap.SRVGPU();
+            D3D12_GPU_DESCRIPTOR_HANDLE normalHandle = normalTex->GPUHandle();
 
-            m_renderer.DrawMeshRange(*meshPtr, addr, texHandle, shadowHandle,
+            m_renderer.DrawMeshRange(*meshPtr, addr,
+                texHandle, shadowHandle, normalHandle,
                 sm->indexStart, sm->indexCount);
+
             m_trianglesCount += sm->indexCount / 3;
         }
     }
 }
-

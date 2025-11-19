@@ -21,6 +21,7 @@ cbuffer Scene : register(b0)
 
 Texture2D uTexture : register(t0);
 Texture2D uShadowMap : register(t1);
+Texture2D uNormalMap : register(t2);
 
 SamplerState uSampler : register(s0);
 SamplerState uShadowSampler : register(s1);
@@ -83,6 +84,8 @@ struct VSOut
     float3 col : COLOR1;
     float2 uv : TEXCOORD2;
     float4 shadowPos : TEXCOORD3;
+    float3 tangent : TEXCOORD4;
+    float3 bitangent : TEXCOORD5;
 };
 
 float Hash12(float2 p)
@@ -153,6 +156,25 @@ float ComputeShadow(float4 shadowPos, float3 normal, float4 screenPos)
 float4 main(VSOut i) : SV_Target
 {
     float3 N = normalize(i.nrm);
+
+    float tLen2 = dot(i.tangent, i.tangent);
+    float bLen2 = dot(i.bitangent, i.bitangent);
+
+    bool useNormalMap = (tLen2 > 1e-6f) && (bLen2 > 1e-6f);
+
+    if (useNormalMap)
+    {
+        float3 Ng = normalize(i.nrm);
+        float3 T = normalize(i.tangent);
+        float3 B = normalize(i.bitangent);
+        T = normalize(T - Ng * dot(T, Ng));
+        B = normalize(B - Ng * dot(B, Ng));
+        float3x3 TBN = float3x3(T, B, Ng);
+        float3 nTex = uNormalMap.Sample(uSampler, i.uv).xyz;
+        nTex = nTex * 2.0f - 1.0f;
+        N = normalize(mul(nTex, TBN));
+    }
+
     float3 L = normalize(uLightDir);
     float3 V = normalize(uCameraPos - i.worldPos);
     float3 R = reflect(-L, N);

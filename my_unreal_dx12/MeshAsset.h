@@ -11,6 +11,8 @@ struct Vertex {
     float nx, ny, nz;
     float r, g, b;
     float u, v;
+    float tx, ty, tz;
+    float bx, by, bz;
 };
 
 struct Submesh
@@ -25,6 +27,8 @@ struct Submesh
     float opacity = 1.f;
 
     std::shared_ptr<Texture> texture;
+    std::shared_ptr<Texture> normalMap;
+    bool hasNormalMap = false;
 };
 
 class MeshAsset

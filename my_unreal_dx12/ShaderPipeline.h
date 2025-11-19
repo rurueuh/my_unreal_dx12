@@ -21,7 +21,7 @@ public:
         D3D12_CULL_MODE cull = D3D12_CULL_MODE_BACK)
     {
 
-        D3D12_DESCRIPTOR_RANGE ranges[2]{};
+        D3D12_DESCRIPTOR_RANGE ranges[3]{};
 
         ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
         ranges[0].NumDescriptors = 1;
@@ -35,7 +35,13 @@ public:
         ranges[1].RegisterSpace = 0;
         ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-        D3D12_ROOT_PARAMETER params[3]{};
+        ranges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+        ranges[2].NumDescriptors = 1;
+        ranges[2].BaseShaderRegister = 2; // t2
+        ranges[2].RegisterSpace = 0;
+        ranges[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+        D3D12_ROOT_PARAMETER params[4]{};
 
         params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
         params[0].Descriptor.ShaderRegister = 0; // b0
@@ -51,6 +57,11 @@ public:
         params[2].DescriptorTable.NumDescriptorRanges = 1;
         params[2].DescriptorTable.pDescriptorRanges = &ranges[1];
         params[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+        params[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+        params[3].DescriptorTable.NumDescriptorRanges = 1;
+        params[3].DescriptorTable.pDescriptorRanges = &ranges[2];
+        params[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
         D3D12_STATIC_SAMPLER_DESC samplers[2]{};
 

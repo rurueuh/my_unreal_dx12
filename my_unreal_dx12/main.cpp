@@ -69,8 +69,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     std::vector<std::shared_ptr<Mesh>> weapons;
 
     auto meshDraw = win.getImGui().addText("Mesh: 0");
-    win.getImGui().AddButton("Add Fighter Jet", [&weapons, &win, meshDraw]() {
-            std::shared_ptr<Mesh> weapon = std::make_shared<Mesh>("mirage2000/scene.obj");
+    win.getImGui().AddButton("Add 1 Test wall", [&weapons, &win, meshDraw]() {
+            std::shared_ptr<Mesh> weapon = std::make_shared<Mesh>("test/brick_wall.obj");
             weapon->SetPosition(
                 ((rand() % 100) / 100.f - 0.5f) * 50.f,
                 ((rand() % 100) / 100.f - 0.5f) * 50.f,
@@ -80,8 +80,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             meshDraw->setText("Mesh: %u", (unsigned)weapons.size());
         }
     );
-    win.getImGui().AddButton("Add 100 Fighters Jets", [&weapons, &win, meshDraw]() {
-        for (int lh = 100; lh--;) {
+    win.getImGui().AddButton("Add 1 Fighters Jets", [&weapons, &win, meshDraw]() {
+        for (int lh = 1; lh--;) {
             std::shared_ptr<Mesh> weapon = std::make_shared<Mesh>("mirage2000/scene.obj");
             weapon->SetPosition(
                 ((rand() % 100) / 100.f - 0.5f) * 50.f,

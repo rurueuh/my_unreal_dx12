@@ -92,12 +92,15 @@ public:
     void DrawMesh(const Mesh& mesh,
         D3D12_GPU_VIRTUAL_ADDRESS cbAddr,
         D3D12_GPU_DESCRIPTOR_HANDLE texHandle,
-        D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle);
+        D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle,
+        D3D12_GPU_DESCRIPTOR_HANDLE normalHandle
+    );
 
     void DrawMeshRange(const Mesh& mesh,
         D3D12_GPU_VIRTUAL_ADDRESS cbAddr,
         D3D12_GPU_DESCRIPTOR_HANDLE texHandle,
         D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle,
+        D3D12_GPU_DESCRIPTOR_HANDLE normalHandle,
         UINT indexStart,
         UINT indexCount);
 
