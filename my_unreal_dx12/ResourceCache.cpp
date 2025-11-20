@@ -200,13 +200,13 @@ static void ComputeTangents(std::vector<Vertex>& verts, const std::vector<uint32
         DirectX::XMFLOAT2 uv1{ v1.u, v1.v };
         DirectX::XMFLOAT2 uv2{ v2.u, v2.v };
 
-        XMVECTOR P0 = XMLoadFloat3(&p0);
-        XMVECTOR P1 = XMLoadFloat3(&p1);
-        XMVECTOR P2 = XMLoadFloat3(&p2);
+        XMVECTOR P0 = DirectX::XMLoadFloat3(&p0);
+        XMVECTOR P1 = DirectX::XMLoadFloat3(&p1);
+        XMVECTOR P2 = DirectX::XMLoadFloat3(&p2);
 
-        XMVECTOR uv0v = XMLoadFloat2(&uv0);
-        XMVECTOR uv1v = XMLoadFloat2(&uv1);
-        XMVECTOR uv2v = XMLoadFloat2(&uv2);
+        XMVECTOR uv0v = DirectX::XMLoadFloat2(&uv0);
+        XMVECTOR uv1v = DirectX::XMLoadFloat2(&uv1);
+        XMVECTOR uv2v = DirectX::XMLoadFloat2(&uv2);
 
         float x1 = p1.x - p0.x;
         float x2 = p2.x - p0.x;
