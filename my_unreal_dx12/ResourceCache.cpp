@@ -347,7 +347,10 @@ static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::s
             sm.indexStart = static_cast<uint32_t>(out.indices.size());
             if (mat) {
                 sm.kd = mat->Kd;
+                sm.ks = mat->Ks;
+                sm.ke = mat->Ke;
                 sm.shininess = mat->Ns;
+                sm.opacity = mat->d;
                 if (auto tex = getMaterialTexture(name))
                     sm.texture = tex;
                 else
@@ -355,7 +358,10 @@ static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::s
             }
             else {
                 sm.kd = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
+                sm.ks = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
+                sm.ke = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
                 sm.shininess = 128.f;
+                sm.opacity = 1.f;
                 sm.texture = defaultWhite;
             }
 
@@ -435,10 +441,14 @@ static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::s
             auto it = materials.find(name);
             currentMaterialName = name;
             currentMaterial = (it != materials.end()) ? &it->second : nullptr;
+            if (!out.submeshes.empty()) {
+                auto& last = out.submeshes.back();
+                last.indexCount = static_cast<uint32_t>(out.indices.size() - last.indexStart);
+            }
 
+            beginSubmesh(currentMaterialName, currentMaterial);
             if (currentMaterial) {
                 out.shininess = currentMaterial->Ns;
-                std::cout << "Material " << name << " Ns = " << out.shininess << "\n";
             }
 
             if (!out.texture)
@@ -461,7 +471,6 @@ static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::s
 
     const bool hasNormals = !normals.empty();
     if (!hasNormals) {
-		std::cout << "Recomputing smooth normals for " << filename << "\n";
         RecomputeSmoothNormals(out.vertices, out.indices);
     }
 
