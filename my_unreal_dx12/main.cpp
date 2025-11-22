@@ -74,7 +74,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             weapon->SetPosition(
                 ((rand() % 100) / 100.f - 0.5f) * 50.f,
                 ((rand() % 100) / 100.f - 0.5f) * 50.f,
-                ((rand() % 100) / 100.f - 0.5f) * 50.f
+				((rand() % 100) / 100.f) * 50.f
             );
             weapons.push_back(std::move(weapon));
             meshDraw->setText("Mesh: %u", (unsigned)weapons.size());
@@ -84,9 +84,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         for (int lh = 1; lh--;) {
             std::shared_ptr<Mesh> weapon = std::make_shared<Mesh>("mirage2000/scene.obj");
             weapon->SetPosition(
-                ((rand() % 100) / 100.f - 0.5f) * 50.f,
-                ((rand() % 100) / 100.f - 0.5f) * 50.f,
-                ((rand() % 100) / 100.f - 0.5f) * 50.f
+                ((rand() % 100) / 100.f - 0.5f) * 10.f,
+                ((rand() % 100) / 100.f) * 10.f,
+				((rand() % 100) / 100.f - 0.5f) * 10.f
             );
             weapons.push_back(std::move(weapon));
             meshDraw->setText("Mesh: %u", (unsigned)weapons.size());
@@ -115,22 +115,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 
     std::chrono::steady_clock::time_point lastTime = std::chrono::steady_clock::now();
     auto msFrame = win.getImGui().addText("Frame Time: 0 ms");
-
-    win.getImGui().addSeparator();
-    win.getImGui().addSliderFloat(
-        "Plane Specular",
-        nullptr,
-        1.0f, 256.0f,
-        [&weapons, &geometricsMeshes](float val)
-        {
-            for (auto& w : weapons) {
-                w->setShininess(val);
-            }
-            for (auto& g : geometricsMeshes) {
-                g->setShininess(val);
-            }
-        }
-    );
 
     while (win.IsOpen())
     {

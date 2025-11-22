@@ -29,6 +29,9 @@ struct Submesh
     std::shared_ptr<Texture> texture;
     std::shared_ptr<Texture> normalMap;
     bool hasNormalMap = false;
+
+    std::shared_ptr<Texture> metalRoughMap;
+    bool hasMetalRoughMap = false;
 };
 
 class MeshAsset
@@ -47,6 +50,8 @@ public:
     std::shared_ptr<Texture> texture;
 
     std::vector<Submesh> submeshes;
+
+	void setShininess(float s) { shininess = s; }
 
     void Upload(ID3D12Device* device);
 };
