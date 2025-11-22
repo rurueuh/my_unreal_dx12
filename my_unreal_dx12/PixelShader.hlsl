@@ -32,7 +32,7 @@ static const float3 kAmbient = float3(0.25, 0.25, 0.25);
 static const float SHADOW_MAP_SIZE = 4096.0f;
 
 static const int POISSON_MAX = 32;
-static const int POISSON_SAMPLES = 16;
+static const int POISSON_SAMPLES = 20;
 
 static float2 poissonDisk[POISSON_MAX] =
 {
@@ -113,8 +113,8 @@ float ComputeShadow(float4 shadowPos, float3 normal, float4 screenPos)
     float3 L = normalize(uLightDir);
     float NdotL = saturate(dot(N, L));
 
-    float baseBias = 0.0006f;
-    float slopeBias = 0.0045f * (1.0f - NdotL);
+    float baseBias = 0.00015f;
+    float slopeBias = 0.0015f * (1.0f - NdotL);
     float bias = baseBias + slopeBias;
 
     float2 texel = float2(1.0 / SHADOW_MAP_SIZE, 1.0 / SHADOW_MAP_SIZE);
@@ -231,7 +231,6 @@ float4 main(VSOut i) : SV_Target
 
 #else
     
-
     float shadow = ComputeShadow(i.shadowPos, N, i.pos);
     float3 lighting = kAmbient + shadow * (diffuse + specular);
     float3 color = albedo * lighting + uKe;

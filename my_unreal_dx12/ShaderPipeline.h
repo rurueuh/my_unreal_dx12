@@ -90,6 +90,10 @@ public:
         samplers[0].ShaderRegister = 0; // s0
 
         samplers[1] = samplers[0];
+		samplers[1].Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+        samplers[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        samplers[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        samplers[1].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         samplers[1].ShaderRegister = 1; // s1
 
         D3D12_ROOT_SIGNATURE_DESC rsDesc{};
@@ -141,7 +145,7 @@ public:
         }
         compileErrs.Reset();
 
-        D3DCompile(
+        auto errshader = D3DCompile(
             psSource, std::strlen(psSource),
             nullptr, nullptr, nullptr,
             "main", "ps_5_1",
@@ -149,8 +153,7 @@ public:
             m_psBlob.GetAddressOf(), &compileErrs);
         if (compileErrs) {
             OutputDebugStringA((char*)compileErrs->GetBufferPointer());
-			/*std::cout << "test" << std::endl;
-			DXThrow(E_FAIL);*/
+			DXThrow(errshader);
         }
 
         m_cachedInputElements.assign(inputLayout, inputLayout + inputCount);
