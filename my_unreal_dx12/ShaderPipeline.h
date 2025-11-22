@@ -21,7 +21,7 @@ public:
         D3D12_CULL_MODE cull = D3D12_CULL_MODE_BACK)
     {
 
-        D3D12_DESCRIPTOR_RANGE ranges[3]{};
+        D3D12_DESCRIPTOR_RANGE ranges[4]{};
 
         ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
         ranges[0].NumDescriptors = 1;
@@ -41,7 +41,13 @@ public:
         ranges[2].RegisterSpace = 0;
         ranges[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-        D3D12_ROOT_PARAMETER params[4]{};
+        ranges[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+        ranges[3].NumDescriptors = 1;
+        ranges[3].BaseShaderRegister = 3; // t3
+        ranges[3].BaseShaderRegister = 3;
+        ranges[3].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+        D3D12_ROOT_PARAMETER params[5]{};
 
         params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
         params[0].Descriptor.ShaderRegister = 0; // b0
@@ -62,6 +68,11 @@ public:
         params[3].DescriptorTable.NumDescriptorRanges = 1;
         params[3].DescriptorTable.pDescriptorRanges = &ranges[2];
         params[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+        params[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+        params[4].DescriptorTable.NumDescriptorRanges = 1;
+        params[4].DescriptorTable.pDescriptorRanges = &ranges[3];
+        params[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
         D3D12_STATIC_SAMPLER_DESC samplers[2]{};
 
@@ -130,14 +141,16 @@ public:
         }
         compileErrs.Reset();
 
-        DXThrow(D3DCompile(
+        D3DCompile(
             psSource, std::strlen(psSource),
             nullptr, nullptr, nullptr,
             "main", "ps_5_1",
             compileFlags, 0,
-            m_psBlob.GetAddressOf(), &compileErrs));
+            m_psBlob.GetAddressOf(), &compileErrs);
         if (compileErrs) {
             OutputDebugStringA((char*)compileErrs->GetBufferPointer());
+			/*std::cout << "test" << std::endl;
+			DXThrow(E_FAIL);*/
         }
 
         m_cachedInputElements.assign(inputLayout, inputLayout + inputCount);

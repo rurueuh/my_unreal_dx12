@@ -13,6 +13,7 @@ struct Material {
     float Ns{ 128.f };
     float d{ 1.f };
     std::string map_normal;
+    std::string map_metalRough;
 };
 
 class ResourceCache {

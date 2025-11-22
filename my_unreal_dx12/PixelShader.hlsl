@@ -22,6 +22,7 @@ cbuffer Scene : register(b0)
 Texture2D uTexture : register(t0);
 Texture2D uShadowMap : register(t1);
 Texture2D uNormalMap : register(t2);
+Texture2D uMetalRough : register(t3);
 
 SamplerState uSampler : register(s0);
 SamplerState uShadowSampler : register(s1);
@@ -152,19 +153,28 @@ float ComputeShadow(float4 shadowPos, float3 normal, float4 screenPos)
 
     return acc / count;
 }
+#define DEBUG_NODEBUG           0
+#define DEBUG_ALBEDO            1
+#define DEBUG_NORMAL_TANGENT    2
+#define DEBUG_NORMAL_WORLD      3
+#define DEBUG_METALLIC          4
+#define DEBUG_ROUGHNESS         5
+#define DEBUG_METALROUGH_RGB    6
+#define DEBUG_SPECULAR_PHONG    7
+
+#define DEBUG_MODE 0
 
 float4 main(VSOut i) : SV_Target
 {
-    float3 N = normalize(i.nrm);
+    float3 Ng = normalize(i.nrm);
+    float3 N = Ng;
 
     float tLen2 = dot(i.tangent, i.tangent);
     float bLen2 = dot(i.bitangent, i.bitangent);
-
     bool useNormalMap = (tLen2 > 1e-6f) && (bLen2 > 1e-6f);
 
     if (useNormalMap)
     {
-        float3 Ng = normalize(i.nrm);
         float3 T = normalize(i.tangent);
         float3 B = normalize(i.bitangent);
         T = normalize(T - Ng * dot(T, Ng));
@@ -175,6 +185,12 @@ float4 main(VSOut i) : SV_Target
         N = normalize(mul(nTex, TBN));
     }
 
+    float4 texSample = uTexture.Sample(uSampler, i.uv);
+    float3 albedo = texSample.rgb * i.col;
+
+    float3 mr = uMetalRough.Sample(uSampler, i.uv).rgb;
+    float roughness = saturate(mr.g);
+    float metallic = saturate(mr.b);
     float3 L = normalize(uLightDir);
     float3 V = normalize(uCameraPos - i.worldPos);
     float3 R = reflect(-L, N);
@@ -182,21 +198,44 @@ float4 main(VSOut i) : SV_Target
     float NdotL = saturate(dot(N, L));
     float3 diffuse = kLightColor * NdotL;
 
+    float effectiveShininess = lerp(16.0f, 256.0f, 1.0f - roughness);
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), diffuse, metallic);
+
     float spec = 0.0f;
     if (NdotL > 0.0f)
-        spec = pow(saturate(dot(R, V)), uShininess);
+        spec = pow(saturate(dot(R, V)), effectiveShininess);
 
-    float3 specular = kLightColor * spec * uKs;
+    float3 specular = F0 * spec * uKs;
+
+#if DEBUG_MODE == DEBUG_ALBEDO
+    return float4(albedo, 1.0);
+
+#elif DEBUG_MODE == DEBUG_NORMAL_TANGENT
+    float3 nTex = uNormalMap.Sample(uSampler, i.uv).xyz;
+    return float4(nTex, 1.0);
+
+#elif DEBUG_MODE == DEBUG_NORMAL_WORLD
+    float3 Nview = N * 0.5f + 0.5f;
+    return float4(Nview, 1.0);
+
+#elif DEBUG_MODE == DEBUG_METALLIC
+    return float4(metallic.xxx, 1.0);
+
+#elif DEBUG_MODE == DEBUG_ROUGHNESS
+    return float4(roughness.xxx, 1.0);
+
+#elif DEBUG_MODE == DEBUG_METALROUGH_RGB
+    return float4(mr, 1.0);
+#elif DEBUG_MODE == DEBUG_SPECULAR_PHONG
+    return float4(specular, 1.0);
+
+#else
+    
 
     float shadow = ComputeShadow(i.shadowPos, N, i.pos);
-
-    float4 texSample = uTexture.Sample(uSampler, i.uv);
-    float3 albedo = texSample.rgb * i.col;
-
     float3 lighting = kAmbient + shadow * (diffuse + specular);
     float3 color = albedo * lighting + uKe;
-
     float alpha = texSample.a * uOpacity;
-
     return float4(color, alpha);
+#endif
 }

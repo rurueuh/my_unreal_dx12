@@ -68,6 +68,9 @@ static void parseMtlFile(const std::string& mtlPath, std::unordered_map<std::str
         {
             iss >> out[cur].map_normal;
         }
+        else if (tok == "refl" && !cur.empty()) {
+            iss >> out[cur].map_metalRough;
+        }
     }
 }
 
@@ -273,40 +276,8 @@ static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::s
     const Material* currentMaterial = nullptr;
     std::unordered_map<std::string, std::shared_ptr<Texture>> materialTextures;
     std::unordered_map<std::string, std::shared_ptr<Texture>> materialNormalTextures;
+    std::unordered_map<std::string, std::shared_ptr<Texture>> materialMetalRoughTextures;
 
-    auto getMaterialTexture = [&](const std::string& name) -> std::shared_ptr<Texture>
-        {
-            auto it = materialTextures.find(name);
-            if (it != materialTextures.end())
-                return it->second;
-
-            auto matIt = materials.find(name);
-            if (matIt == materials.end() || matIt->second.map_Kd.empty()) {
-                materialTextures[name] = nullptr;
-                return nullptr;
-            }
-
-            const std::string texPath = joinPath(baseDir, matIt->second.map_Kd);
-
-            auto tex = std::make_shared<Texture>();
-            try
-            {
-                auto& win = WindowDX12::Get();
-                auto& gd = win.GetGraphicsDevice();
-                auto  alloc = win.AllocateSrv();
-
-                tex->LoadFromFile(gd, texPath.c_str(), alloc.cpu, alloc.gpu);
-
-                materialTextures[name] = tex;
-                return tex;
-            }
-            catch (...)
-            {
-                std::cerr << "Error texture: " << texPath << "\n";
-                materialTextures[name] = nullptr;
-                return nullptr;
-            }
-        };
     auto getMaterialNormal = [&](const std::string& name) -> std::shared_ptr<Texture>
         {
             auto it = materialNormalTextures.find(name);
@@ -340,40 +311,124 @@ static void LoadOBJIntoAsset(const std::string& filename, MeshAsset& out, std::s
                 return nullptr;
             }
         };
+    auto getMaterialTexture = [&](const std::string& name) -> std::shared_ptr<Texture>
+        {
+            auto it = materialTextures.find(name);
+            if (it != materialTextures.end())
+                return it->second;
+
+            auto matIt = materials.find(name);
+            if (matIt == materials.end() || matIt->second.map_Kd.empty()) {
+                materialTextures[name] = nullptr;
+                return nullptr;
+            }
+
+            const std::string texPath = joinPath(baseDir, matIt->second.map_Kd);
+
+            auto tex = std::make_shared<Texture>();
+            try
+            {
+                auto& win = WindowDX12::Get();
+                auto& gd = win.GetGraphicsDevice();
+                auto  alloc = win.AllocateSrv();
+
+                tex->LoadFromFile(gd, texPath.c_str(), alloc.cpu, alloc.gpu);
+
+                materialTextures[name] = tex;
+                return tex;
+            }
+            catch (...)
+            {
+                std::cerr << "Error texture: " << texPath << "\n";
+                materialTextures[name] = nullptr;
+                return nullptr;
+            }
+        };
+    auto getMaterialMetalRough = [&](const std::string& name) -> std::shared_ptr<Texture>
+        {
+            auto it = materialMetalRoughTextures.find(name);
+            if (it != materialMetalRoughTextures.end())
+                return it->second;
+
+            auto matIt = materials.find(name);
+            if (matIt == materials.end() || matIt->second.map_metalRough.empty()) {
+                materialMetalRoughTextures[name] = nullptr;
+                return nullptr;
+            }
+
+            const std::string texPath = joinPath(baseDir, matIt->second.map_metalRough);
+
+            auto tex = std::make_shared<Texture>();
+            try
+            {
+                auto& win = WindowDX12::Get();
+                auto& gd = win.GetGraphicsDevice();
+                auto  alloc = win.AllocateSrv();
+
+                tex->LoadFromFile(gd, texPath.c_str(), alloc.cpu, alloc.gpu);
+
+                materialMetalRoughTextures[name] = tex;
+                return tex;
+            }
+            catch (...)
+            {
+                std::cerr << "Error metalRough: " << texPath << "\n";
+                materialMetalRoughTextures[name] = nullptr;
+                return nullptr;
+            }
+        };
+
 
     auto beginSubmesh = [&](const std::string& name, const Material* mat)
         {
             Submesh sm;
             sm.indexStart = static_cast<uint32_t>(out.indices.size());
-            if (mat) {
+
+            if (mat)
+            {
                 sm.kd = mat->Kd;
                 sm.ks = mat->Ks;
                 sm.ke = mat->Ke;
                 sm.shininess = mat->Ns;
                 sm.opacity = mat->d;
+
                 if (auto tex = getMaterialTexture(name))
                     sm.texture = tex;
                 else
                     sm.texture = defaultWhite;
+
+                if (!mat->map_normal.empty())
+                {
+                    if (auto n = getMaterialNormal(name))
+                    {
+                        sm.normalMap = n;
+                        sm.hasNormalMap = true;
+                    }
+                }
+
+                if (!mat->map_metalRough.empty())
+                {
+                    if (auto mr = getMaterialMetalRough(name))
+                    {
+                        sm.metalRoughMap = mr;
+                        sm.hasMetalRoughMap = true;
+                    }
+                }
             }
-            else {
+            else
+            {
                 sm.kd = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
                 sm.ks = DirectX::XMFLOAT3(1.f, 1.f, 1.f);
                 sm.ke = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
                 sm.shininess = 128.f;
                 sm.opacity = 1.f;
-                sm.texture = defaultWhite;
-            }
 
-            if (mat && !mat->map_normal.empty()) {
-                if (auto n = getMaterialNormal(name)) {
-                    sm.normalMap = n;
-                    sm.hasNormalMap = true;
-                }
+                sm.texture = defaultWhite;
             }
 
             out.submeshes.push_back(sm);
         };
+
 
 
     std::string line;

@@ -93,7 +93,8 @@ public:
         D3D12_GPU_VIRTUAL_ADDRESS cbAddr,
         D3D12_GPU_DESCRIPTOR_HANDLE texHandle,
         D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle,
-        D3D12_GPU_DESCRIPTOR_HANDLE normalHandle
+        D3D12_GPU_DESCRIPTOR_HANDLE normalHandle,
+        D3D12_GPU_DESCRIPTOR_HANDLE metalRoughHandle
     );
 
     void DrawMeshRange(const Mesh& mesh,
@@ -101,8 +102,10 @@ public:
         D3D12_GPU_DESCRIPTOR_HANDLE texHandle,
         D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle,
         D3D12_GPU_DESCRIPTOR_HANDLE normalHandle,
+        D3D12_GPU_DESCRIPTOR_HANDLE metalRoughHandle,
         UINT indexStart,
-        UINT indexCount);
+        UINT indexCount
+    );
 
     void DrawMeshShadow(const Mesh& mesh, D3D12_GPU_VIRTUAL_ADDRESS cbAddr)
     {

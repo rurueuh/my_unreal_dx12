@@ -368,6 +368,7 @@ void WindowDX12::DrawScene() {
         XMMATRIX NMat = XMMatrixTranspose(MInv);
 
         SceneCB base{};
+		base.uShininess = 232.0f;
         XMStoreFloat4x4(&base.uModel, XMMatrixTranspose(M));
         XMStoreFloat4x4(&base.uViewProj, XMMatrixTranspose(VP));
         XMStoreFloat4x4(&base.uNormalMatrix, XMMatrixTranspose(NMat));
@@ -409,12 +410,19 @@ void WindowDX12::DrawScene() {
                 if (!normalTex)
                     normalTex = &getDefaultTexture();
 
+                Texture* mrTex = nullptr;
+                if (sm.hasMetalRoughMap && sm.metalRoughMap)
+                    mrTex = sm.metalRoughMap.get();
+                if (!mrTex)
+                    mrTex = &getDefaultTexture();
+
                 D3D12_GPU_DESCRIPTOR_HANDLE texHandle = tex->GPUHandle();
                 D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle = m_shadowMap.SRVGPU();
                 D3D12_GPU_DESCRIPTOR_HANDLE normalHandle = normalTex->GPUHandle();
+                D3D12_GPU_DESCRIPTOR_HANDLE metalRoughHandle = mrTex->GPUHandle();
 
                 m_renderer.DrawMeshRange(*meshPtr, addr,
-                    texHandle, shadowHandle, normalHandle,
+                    texHandle, shadowHandle, normalHandle, metalRoughHandle,
                     sm.indexStart, sm.indexCount);
 
                 m_trianglesCount += sm.indexCount / 3;
@@ -422,7 +430,6 @@ void WindowDX12::DrawScene() {
         }
         else {
             SceneCB cb = base;
-            cb.uShininess = meshPtr->getShininess();
 
             const UINT slice = frame * kMaxDrawsPerFrame + (m_drawCursor++);
             D3D12_GPU_VIRTUAL_ADDRESS addr = m_cb.UploadSlice(slice, cb);
@@ -431,13 +438,15 @@ void WindowDX12::DrawScene() {
             if (!tex) tex = &getDefaultTexture();
 
             Texture* normalTex = &getDefaultTexture();
+            Texture* mrTex = &getDefaultTexture();
 
             D3D12_GPU_DESCRIPTOR_HANDLE texHandle = tex->GPUHandle();
             D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle = m_shadowMap.SRVGPU();
             D3D12_GPU_DESCRIPTOR_HANDLE normalHandle = normalTex->GPUHandle();
+            D3D12_GPU_DESCRIPTOR_HANDLE metalRoughHandle = mrTex->GPUHandle();
 
             m_renderer.DrawMesh(*meshPtr, addr,
-                texHandle, shadowHandle, normalHandle);
+                texHandle, shadowHandle, normalHandle, metalRoughHandle);
 
             m_trianglesCount += meshPtr->IndexCount() / 3;
         }
@@ -491,12 +500,19 @@ void WindowDX12::DrawScene() {
             if (!normalTex)
                 normalTex = &getDefaultTexture();
 
+            Texture* mrTex = nullptr;
+            if (sm->hasMetalRoughMap && sm->metalRoughMap)
+                mrTex = sm->metalRoughMap.get();
+            if (!mrTex)
+                mrTex = &getDefaultTexture();
+
             D3D12_GPU_DESCRIPTOR_HANDLE texHandle = tex->GPUHandle();
             D3D12_GPU_DESCRIPTOR_HANDLE shadowHandle = m_shadowMap.SRVGPU();
             D3D12_GPU_DESCRIPTOR_HANDLE normalHandle = normalTex->GPUHandle();
+            D3D12_GPU_DESCRIPTOR_HANDLE metalRoughHandle = mrTex->GPUHandle();
 
             m_renderer.DrawMeshRange(*meshPtr, addr,
-                texHandle, shadowHandle, normalHandle,
+                texHandle, shadowHandle, normalHandle, metalRoughHandle,
                 sm->indexStart, sm->indexCount);
 
             m_trianglesCount += sm->indexCount / 3;
