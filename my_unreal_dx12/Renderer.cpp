@@ -14,7 +14,7 @@ void Renderer::DrawMesh(const Mesh& mesh,
     cmd->SetGraphicsRootConstantBufferView(0, cbAddr);
     cmd->SetGraphicsRootDescriptorTable(1, texHandle);
     cmd->SetGraphicsRootDescriptorTable(2, shadowHandle);
-    cmd->SetGraphicsRootDescriptorTable(3, shadowHandle);
+    cmd->SetGraphicsRootDescriptorTable(3, normalHandle);
     cmd->SetGraphicsRootDescriptorTable(4, metalRoughHandle);
 
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

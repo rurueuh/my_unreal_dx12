@@ -162,7 +162,7 @@ float ComputeShadow(float4 shadowPos, float3 normal, float4 screenPos)
 #define DEBUG_METALROUGH_RGB    6
 #define DEBUG_SPECULAR_PHONG    7
 
-#define DEBUG_MODE 0
+#define DEBUG_MODE DEBUG_NODEBUG
 
 float4 main(VSOut i) : SV_Target
 {
