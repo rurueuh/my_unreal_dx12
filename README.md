@@ -23,7 +23,7 @@ This is a personal project demonstrating a DirectX 12 rendering engine. It is no
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/your-username/my_unreal_dx12.git
+    git clone https://github.com/rurueuh/Saovu.git
     ```
 2.  Open the `my_unreal_dx12.sln` file in Visual Studio.
 3.  Set the build configuration to `Debug` or `Release` and the platform to `x64`.
